@@ -61,7 +61,7 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	startAuthCodeServer(openIDConfig, codeVerifier)
 
 	// Step 5: Build and display the authorization URL
-	authURL := buildAuthURL(openIDConfig.AuthorizationEndpoint, openIDConfig.ClientID, openIDConfig.Scope, codeChallenge, generatedState)
+	authURL := buildAuthURL(openIDConfig.AuthorizationEndpoint, clientID, openIDConfig.Scope, codeChallenge, generatedState)
 	fmt.Println("Open the following URL in canyour browser to authenticate:")
 	fmt.Println(authURL)
 
