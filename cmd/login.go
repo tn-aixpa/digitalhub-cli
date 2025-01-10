@@ -15,21 +15,15 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"gopkg.in/ini.v1"
 )
 
 var (
 	redirectURI    = "http://localhost:4000/callback"
-	clientID       = "c_5327245aac20400897a20ed4d0deef86"
+	clientID       = "c_dhcliclientid"
 	generatedState string
 )
-
-type OpenIDConfig struct {
-	AuthorizationEndpoint string `json:"authorization_endpoint"`
-	TokenEndpoint         string `json:"token_endpoint"`
-	Issuer                string `json:"issuer"`
-	ClientID              string `json:"client_id"`
-	Scope                 string `json:"scope"`
-}
 
 func init() {
 	RegisterCommand(&Command{
@@ -42,14 +36,23 @@ func init() {
 
 func loginHandler(args []string, fs *flag.FlagSet) {
 	if len(args) < 1 {
-		log.Fatalf("Error: URL is required as a positional argument.\nUsage: dhcli login <url>")
+		log.Fatalf("Error: name of configuration to use is required as a positional argument.\nUsage: dhcli login <name>")
 	}
 
-	authUrl := args[0]
-	fmt.Printf("Authorize with: %s\n", authUrl)
+	// Step 1: Read config from ini file
+	cfg, err := ini.Load(getIniPath())
+	if err != nil {
+		log.Fatalf("Failed to read configuration file: %v", err)
+	}
 
-	// Step 1: Fetch OpenID configuration
-	openIDConfig := fetchOpenIDConfig("https://" + authUrl + "/.well-known/openid-configuration")
+	sectionName := args[0]
+	section, err := cfg.GetSection(sectionName)
+	if err != nil {
+		log.Fatalf("Failed to read section '%s': %v.", sectionName, err)
+	}
+
+	openIDConfig := new(OpenIDConfig)
+	section.MapTo(openIDConfig)
 
 	// Step 2: Generate PKCE values
 	codeVerifier, codeChallenge := generatePKCE()
@@ -58,41 +61,21 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	generatedState = generateRandomString(32)
 
 	// Step 4: Start local server to capture the authorization code
-	startAuthCodeServer(openIDConfig, codeVerifier)
+	startAuthCodeServer(cfg, sectionName, codeVerifier)
 
 	// Step 5: Build and display the authorization URL
 	authURL := buildAuthURL(openIDConfig.AuthorizationEndpoint, clientID, openIDConfig.Scope, codeChallenge, generatedState)
-	fmt.Println("Open the following URL in canyour browser to authenticate:")
+	fmt.Println("The following URL should open in your browser to authenticate:")
 	fmt.Println(authURL)
 
 	// Open the URL in the default browser
-	err := openBrowser(authURL)
+	err = openBrowser(authURL)
 	if err != nil {
 		log.Printf("Error opening browser: %v", err)
 	}
 
 	// Block the program to wait for user interaction
 	select {}
-}
-
-func fetchOpenIDConfig(configURL string) OpenIDConfig {
-	resp, err := http.Get(configURL)
-	if err != nil {
-		log.Fatalf("Error fetching OpenID configuration: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Error reading OpenID configuration response: %v", err)
-	}
-
-	var config OpenIDConfig
-	if err := json.Unmarshal(body, &config); err != nil {
-		log.Fatalf("Error parsing OpenID configuration: %v", err)
-	}
-
-	return config
 }
 
 func generatePKCE() (string, string) {
@@ -123,7 +106,9 @@ func generateRandomStringWithCharset(length int, charset string) string {
 	return string(result)
 }
 
-func startAuthCodeServer(config OpenIDConfig, codeVerifier string) {
+func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string) {
+	section, _ := cfg.GetSection(sectionName)
+
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		authCode := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
@@ -140,8 +125,8 @@ func startAuthCodeServer(config OpenIDConfig, codeVerifier string) {
 
 		log.Printf("Authorization Code: %s, State: %s\n", authCode, state)
 
-		tokenResponse := exchangeAuthCode(config.TokenEndpoint, clientID, codeVerifier, authCode)
-		if tokenResponse == "" {
+		tokenResponse := exchangeAuthCode(section.Key("token_endpoint").String(), clientID, codeVerifier, authCode)
+		if tokenResponse == nil {
 			http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
 			return
 		}
@@ -169,7 +154,16 @@ func startAuthCodeServer(config OpenIDConfig, codeVerifier string) {
 			</script>
 		`)
 
-		log.Println("Token Response:", tokenResponse)
+		// Save response token
+		log.Println("Token Response:", string(tokenResponse))
+		var responseJson map[string]interface{}
+		json.Unmarshal(tokenResponse, &responseJson)
+		section.Key("jwt_token").SetValue(responseJson["access_token"].(string))
+		err := cfg.SaveTo(getIniPath())
+		if err != nil {
+			fmt.Printf("Failed to update ini file: %v", err)
+			os.Exit(1)
+		}
 
 		// Close cli immediately in a goroutine, this keep open the browser but release the command line tool
 		go func() {
@@ -196,7 +190,7 @@ func buildAuthURL(authEndpoint, clientID, scope, codeChallenge, state string) st
 	return fmt.Sprintf("%s?%s", authEndpoint, v.Encode())
 }
 
-func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) string {
+func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []byte {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("client_id", clientID)
@@ -207,22 +201,22 @@ func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) st
 	resp, err := http.Post(tokenEndpoint, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	if err != nil {
 		log.Printf("Error exchanging auth code for token: %v", err)
-		return ""
+		return nil
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Error reading token response: %v", err)
-		return ""
+		return nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Token server error: %s\nBody: %s", resp.Status, string(body))
-		return ""
+		return nil
 	}
 
-	return string(body)
+	return body
 }
 
 // openBrowser tries to open the provided URL in the default web browser.
