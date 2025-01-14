@@ -1,0 +1,45 @@
+clientId: "c_dhcliclientid"
+realm: "digitalhub-tenant1"
+type: "oauth2"
+name: "dhcli"
+description: ""
+configuration:
+    authorizedGrantTypes:
+      - "authorization_code"
+      - "refresh_token"
+    applicationType: "web"
+    idTokenClaims: false
+    refreshTokenRotation: true
+    refresh_token_rotation: true
+    redirectUris:
+      - "http://localhost:4000/callback"
+    subjectType: "public"
+    authenticationMethods:
+      - "none"
+      - "client_secret_basic"
+      - "client_secret_post"
+    firstParty: true
+    clientSecret: "TVk3QzdERWdsMWZnS2o0VlVYWlVqb1k2"
+    tokenType: "jwt"
+scopes:
+  - "email"
+  - "profile"
+  - "openid"
+  - "tenant1-core"
+  - "user.roles.me"
+  - "offline_access"
+resourceIds: [
+    ]
+providers:
+  - "tenant1password"
+  - "22efaf84-874e-478b-be78-153441b521f4"
+authorities: [
+    ]
+spaceRoles: [
+    ]
+hookWebUrls: {
+    }
+roles: [
+    ]
+hookFunctions: {
+    }

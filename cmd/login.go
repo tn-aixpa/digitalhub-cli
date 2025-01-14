@@ -39,7 +39,7 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 		log.Fatalf("Error: name of configuration to use is required as a positional argument.\nUsage: dhcli login <name>")
 	}
 
-	// Step 1: Read config from ini file
+	// Read config from ini file
 	cfg, err := ini.Load(getIniPath())
 	if err != nil {
 		log.Fatalf("Failed to read configuration file: %v", err)
@@ -54,16 +54,16 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	openIDConfig := new(OpenIDConfig)
 	section.MapTo(openIDConfig)
 
-	// Step 2: Generate PKCE values
+	// Generate PKCE values
 	codeVerifier, codeChallenge := generatePKCE()
 
-	// Step 3: Generate state value
+	// Generate state value
 	generatedState = generateRandomString(32)
 
-	// Step 4: Start local server to capture the authorization code
+	// Start local server to capture the authorization code
 	startAuthCodeServer(cfg, sectionName, codeVerifier)
 
-	// Step 5: Build and display the authorization URL
+	// Build and display the authorization URL
 	authURL := buildAuthURL(openIDConfig.AuthorizationEndpoint, clientID, openIDConfig.Scope, codeChallenge, generatedState)
 	fmt.Println("The following URL should open in your browser to authenticate:")
 	fmt.Println(authURL)
@@ -131,28 +131,11 @@ func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string)
 			return
 		}
 
-		// Give feedback to user and close the window after 5 seconds..
+		// Give feedback to user
 		w.Header().Set("Content-Type", "text/html")
 		fmt.Fprintf(w, "<h1>Authorization Successful</h1>")
+		fmt.Fprintf(w, `<h2>Token response is:</h2>`)
 		fmt.Fprintf(w, "<pre>%s</pre>", tokenResponse)
-		fmt.Fprintf(w, `
-			<h2>This page will automatically close in <span id="countdown">5</span> seconds.</h2>
-			<script type="text/javascript">
-				var countdown = 5; 
-				var countdownElement = document.getElementById('countdown');
-				
-				// Update the countdown every second
-				var interval = setInterval(function() {
-					countdown--; 
-					countdownElement.innerHTML = countdown; // update the countdown display
-					
-					if (countdown <= 0) {
-						clearInterval(interval); 
-						window.close(); 
-					}
-				}, 1000);
-			</script>
-		`)
 
 		// Save response token
 		log.Println("Token Response:", string(tokenResponse))
@@ -165,7 +148,7 @@ func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string)
 			os.Exit(1)
 		}
 
-		// Close cli immediately in a goroutine, this keep open the browser but release the command line tool
+		// Close cli immediately in a goroutine, this keeps the browser open but releases the command line tool
 		go func() {
 			os.Exit(0)
 		}()
@@ -219,7 +202,7 @@ func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []
 	return body
 }
 
-// openBrowser tries to open the provided URL in the default web browser.
+// openBrowser tries to open the provided URL in the default web browser
 func openBrowser(url string) error {
 	var cmd *exec.Cmd
 
