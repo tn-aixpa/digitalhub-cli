@@ -1,27 +1,35 @@
 # dhcli
 
 ## `register`
-`register` takes the following parameters:
-- `name of section`
-- `authorization provider`
+`register` takes the following positional parameters:
+- `environment_name`
+- `authorization_provider`
+- `client_id`
 ``` sh
-./dhcli register bologna aac.digitalhub-dev.smartcommunitylab.it
+./dhcli register bologna aac.digitalhub-dev.smartcommunitylab.it c_dhcliclientid
 ```
-It will create a `.cli.ini` file in the user's home directory (or, if not possible, in the current one), generating a section with the configuration retrieved from the authorization provider.
+It will create a `.cli.ini` file in the user's home directory (or, if not possible, in the current one), generating a section with the specified environment name and containing the configuration retrieved from the authorization provider.
 
+## `use`
+`use` takes the following positional parameters:
+- `default environment_name`
+``` sh
+./dhcli use bologna
+```
+It sets the environment to use when none is specified in the configuration file's default section.
 
 ## `login`
-`login` is to be used after registering a section with the `register` command. It takes the following parameters:
-- `name of section`
+`login` is to be used after registering an environment with the `register` command. It takes the following optional parameter:
+- `-e environment_name`
 ``` sh
-./dhcli login bologna
+./dhcli login -e bologna
 ```
-It will read the corresponding section from the configuration file and log in to the authorization provider. It will update the section with the JWT token obtained.
+It will read the corresponding section from the configuration file and log in to the authorization provider. It will update the section with the access token obtained.
 
-## `logout`
-`logout` takes the following parameters:
-- `name of section`
+## `remove`
+`remove` takes the following positional parameters:
+- `environment_name`
 ``` sh
-./dhcli logout bologna
+./dhcli remove bologna
 ```
-It removes the JWT from the corresponding section in the configuration file.
+It removes the section from the configuration file.

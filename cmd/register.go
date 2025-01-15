@@ -24,7 +24,7 @@ func init() {
 
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "DH CLI register ",
+		Description: "DH CLI register",
 		SetupFlags:  func(fs *flag.FlagSet) {},
 		Handler:     registerHandler,
 	})
@@ -32,15 +32,16 @@ func init() {
 }
 
 func registerHandler(args []string, fs *flag.FlagSet) {
-	if len(args) < 2 {
-		log.Fatalf("Error: Name of configuration to register and authorization URL are required positional arguments.\nUsage: dhcli register <name> <url>")
+	if len(args) < 3 {
+		log.Fatalf("Error: The following positional parameters are required: environment name, authorization URL, client ID.\nUsage: dhcli register <environment> <url> <client_id>")
 	}
 
 	sectionName := args[0]
 	authUrl := args[1]
-	iniPath := getIniPath()
+	clientId := args[2]
 
 	// Read or initialize ini file
+	iniPath := getIniPath()
 	cfg, err := ini.Load(iniPath)
 	if err != nil {
 		cfg = ini.Empty()
@@ -49,6 +50,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	// Fetch OpenID configuration and write to ini file
 	openIDConfig := fetchOpenIDConfig("https://" + authUrl + "/.well-known/openid-configuration")
 	cfg.Section(sectionName).ReflectFrom(&openIDConfig)
+	cfg.Section(sectionName).Key("client_id").SetValue(clientId)
 	err = cfg.SaveTo(iniPath)
 	if err != nil {
 		fmt.Printf("Failed to write ini file: %v", err)

@@ -21,7 +21,6 @@ import (
 
 var (
 	redirectURI    = "http://localhost:4000/callback"
-	clientID       = "c_dhcliclientid"
 	generatedState string
 )
 
@@ -29,15 +28,15 @@ func init() {
 	RegisterCommand(&Command{
 		Name:        "login",
 		Description: "DH CLI login",
-		SetupFlags:  func(fs *flag.FlagSet) {},
-		Handler:     loginHandler,
+		SetupFlags: func(fs *flag.FlagSet) {
+			fs.String("e", "", "environment")
+		},
+		Handler: loginHandler,
 	})
 }
 
 func loginHandler(args []string, fs *flag.FlagSet) {
-	if len(args) < 1 {
-		log.Fatalf("Error: name of configuration to use is required as a positional argument.\nUsage: dhcli login <name>")
-	}
+	ini.DefaultHeader = true
 
 	// Read config from ini file
 	cfg, err := ini.Load(getIniPath())
@@ -45,7 +44,16 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 		log.Fatalf("Failed to read configuration file: %v", err)
 	}
 
-	sectionName := args[0]
+	fs.Parse(args)
+	sectionName := fs.Lookup("e").Value.String()
+	if sectionName == "" {
+		defaultEnvironment := getDefaultEnvironment(cfg)
+		if defaultEnvironment == "" {
+			log.Fatalf("Error: environment flag (-e) was not passed and default environment is not specified in ini file.\nUsage: dhcli login -e <environment>")
+		}
+		sectionName = defaultEnvironment
+	}
+
 	section, err := cfg.GetSection(sectionName)
 	if err != nil {
 		log.Fatalf("Failed to read section '%s': %v.", sectionName, err)
@@ -64,7 +72,7 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	startAuthCodeServer(cfg, sectionName, codeVerifier)
 
 	// Build and display the authorization URL
-	authURL := buildAuthURL(openIDConfig.AuthorizationEndpoint, clientID, openIDConfig.Scope, codeChallenge, generatedState)
+	authURL := buildAuthURL(openIDConfig.AuthorizationEndpoint, openIDConfig.ClientID, openIDConfig.Scope, codeChallenge, generatedState)
 	fmt.Println("The following URL should open in your browser to authenticate:")
 	fmt.Println(authURL)
 
@@ -125,7 +133,7 @@ func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string)
 
 		log.Printf("Authorization Code: %s, State: %s\n", authCode, state)
 
-		tokenResponse := exchangeAuthCode(section.Key("token_endpoint").String(), clientID, codeVerifier, authCode)
+		tokenResponse := exchangeAuthCode(section.Key("token_endpoint").String(), section.Key("client_id").String(), codeVerifier, authCode)
 		if tokenResponse == nil {
 			http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
 			return
@@ -136,12 +144,13 @@ func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string)
 		fmt.Fprintf(w, "<h1>Authorization Successful</h1>")
 		fmt.Fprintf(w, `<h2>Token response is:</h2>`)
 		fmt.Fprintf(w, "<pre>%s</pre>", tokenResponse)
+		fmt.Fprintf(w, `<p>You may now close this window.</p>`)
 
 		// Save response token
 		log.Println("Token Response:", string(tokenResponse))
 		var responseJson map[string]interface{}
 		json.Unmarshal(tokenResponse, &responseJson)
-		section.Key("jwt_token").SetValue(responseJson["access_token"].(string))
+		section.Key("access_token").SetValue(responseJson["access_token"].(string))
 		err := cfg.SaveTo(getIniPath())
 		if err != nil {
 			fmt.Printf("Failed to update ini file: %v", err)
@@ -216,4 +225,15 @@ func openBrowser(url string) error {
 	}
 
 	return cmd.Start()
+}
+
+func getDefaultEnvironment(cfg *ini.File) string {
+	if !cfg.HasSection("DEFAULT") {
+		return ""
+	}
+	defaultSection, err := cfg.GetSection("DEFAULT")
+	if err != nil {
+		log.Fatalf("Error while reading default environment: %v", err)
+	}
+	return defaultSection.Key("environment").String()
 }
