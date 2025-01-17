@@ -1,5 +1,7 @@
 # dhcli
 
+Before interacting with the CLI, you must register a corresponding app in AAC. You can use the contents of `sample-client.yaml` to import an app quickly.
+
 ## `register`
 `register` takes the following positional parameters:
 - `environment_name`
@@ -12,7 +14,7 @@ It will create a `.cli.ini` file in the user's home directory (or, if not possib
 
 ## `use`
 `use` takes the following positional parameters:
-- `default environment_name`
+- `default_environment_name`
 ``` sh
 ./dhcli use bologna
 ```
@@ -24,7 +26,7 @@ It sets the environment to use when none is specified in the configuration file'
 ``` sh
 ./dhcli login -e bologna
 ```
-It will read the corresponding section from the configuration file and log in to the authorization provider. It will update the section with the access token obtained.
+It will read the corresponding section from the configuration file and log in to the authorization provider. It will update the section with the access token obtained. If no environment is specified, it will use the one set by the `use` command.
 
 ## `remove`
 `remove` takes the following positional parameters:
