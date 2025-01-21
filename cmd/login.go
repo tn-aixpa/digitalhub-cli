@@ -59,9 +59,6 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 		log.Fatalf("Failed to read section '%s': %v.", sectionName, err)
 	}
 
-	openIDConfig := new(OpenIDConfig)
-	section.MapTo(openIDConfig)
-
 	// Generate PKCE values
 	codeVerifier, codeChallenge := generatePKCE()
 
@@ -69,10 +66,10 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	generatedState = generateRandomString(32)
 
 	// Start local server to capture the authorization code
-	startAuthCodeServer(cfg, sectionName, codeVerifier)
+	startAuthCodeServer(cfg, section, codeVerifier)
 
 	// Build and display the authorization URL
-	authURL := buildAuthURL(openIDConfig.AuthorizationEndpoint, openIDConfig.ClientID, openIDConfig.Scope, codeChallenge, generatedState)
+	authURL := buildAuthURL(section, codeChallenge, generatedState)
 	fmt.Println("The following URL should open in your browser to authenticate:")
 	fmt.Println(authURL)
 
@@ -114,8 +111,9 @@ func generateRandomStringWithCharset(length int, charset string) string {
 	return string(result)
 }
 
-func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string) {
-	section, _ := cfg.GetSection(sectionName)
+func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier string) {
+	openIDConfig := new(OpenIDConfig)
+	section.MapTo(openIDConfig)
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		authCode := r.URL.Query().Get("code")
@@ -133,7 +131,7 @@ func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string)
 
 		log.Printf("Authorization Code: %s, State: %s\n", authCode, state)
 
-		tokenResponse := exchangeAuthCode(section.Key("token_endpoint").String(), section.Key("client_id").String(), codeVerifier, authCode)
+		tokenResponse := exchangeAuthCode(openIDConfig.TokenEndpoint, openIDConfig.ClientID, codeVerifier, authCode)
 		if tokenResponse == nil {
 			http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
 			return
@@ -150,7 +148,13 @@ func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string)
 		log.Println("Token Response:", string(tokenResponse))
 		var responseJson map[string]interface{}
 		json.Unmarshal(tokenResponse, &responseJson)
-		section.Key("access_token").SetValue(responseJson["access_token"].(string))
+		openIDConfig.AccessToken = responseJson["access_token"].(string)
+		refreshToken, ok := responseJson["refresh_token"]
+		if ok {
+			openIDConfig.RefreshToken = refreshToken.(string)
+		}
+
+		section.ReflectFrom(&openIDConfig)
 		err := cfg.SaveTo(getIniPath())
 		if err != nil {
 			fmt.Printf("Failed to update ini file: %v", err)
@@ -169,17 +173,20 @@ func startAuthCodeServer(cfg *ini.File, sectionName string, codeVerifier string)
 	}()
 }
 
-func buildAuthURL(authEndpoint, clientID, scope, codeChallenge, state string) string {
+func buildAuthURL(section *ini.Section, codeChallenge, state string) string {
+	openIDConfig := new(OpenIDConfig)
+	section.MapTo(openIDConfig)
+
 	v := url.Values{}
 	v.Set("response_type", "code")
-	v.Set("client_id", clientID)
+	v.Set("client_id", openIDConfig.ClientID)
 	v.Set("redirect_uri", redirectURI)
-	v.Set("scope", scope)
+	v.Set("scope", openIDConfig.Scope)
 	v.Set("code_challenge", codeChallenge)
 	v.Set("code_challenge_method", "S256")
 	v.Set("state", state)
 
-	return fmt.Sprintf("%s?%s", authEndpoint, v.Encode())
+	return fmt.Sprintf("%s?%s", openIDConfig.AuthorizationEndpoint, v.Encode())
 }
 
 func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []byte {

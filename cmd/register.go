@@ -18,6 +18,8 @@ type OpenIDConfig struct {
 	Issuer                string `json:"issuer" ini:"issuer"`
 	ClientID              string `json:"client_id" ini:"client_id"`
 	Scope                 string `json:"scope" ini:"scope"`
+	AccessToken           string `json:"access_token" ini:"access_token"`
+	RefreshToken          string `json:"refresh_token" ini:"refresh_token"`
 }
 
 func init() {
@@ -25,20 +27,26 @@ func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
 		Description: "DH CLI register",
-		SetupFlags:  func(fs *flag.FlagSet) {},
-		Handler:     registerHandler,
+		SetupFlags: func(fs *flag.FlagSet) {
+			fs.String("s", "", "scope")
+		},
+		Handler: registerHandler,
 	})
 
 }
 
 func registerHandler(args []string, fs *flag.FlagSet) {
-	if len(args) < 3 {
-		log.Fatalf("Error: The following positional parameters are required: environment name, authorization URL, client ID.\nUsage: dhcli register <environment> <url> <client_id>")
-	}
+	ini.DefaultHeader = true
 
-	sectionName := args[0]
-	authUrl := args[1]
-	clientId := args[2]
+	if len(args) < 3 {
+		log.Fatalf("Error: The following positional parameters are required: environment name, authorization URL, client ID.\nUsage: dhcli register [-s <optional_scope>] <environment> <url> <client_id>")
+	}
+	fs.Parse(args)
+	scope := fs.Lookup("s").Value.String()
+
+	sectionName := fs.Args()[0]
+	authUrl := fs.Args()[1]
+	clientId := fs.Args()[2]
 
 	// Read or initialize ini file
 	iniPath := getIniPath()
@@ -49,8 +57,10 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 
 	// Fetch OpenID configuration and write to ini file
 	openIDConfig := fetchOpenIDConfig("https://" + authUrl + "/.well-known/openid-configuration")
+	openIDConfig.ClientID = clientId
+	openIDConfig.Scope = scope
+
 	cfg.Section(sectionName).ReflectFrom(&openIDConfig)
-	cfg.Section(sectionName).Key("client_id").SetValue(clientId)
 	err = cfg.SaveTo(iniPath)
 	if err != nil {
 		fmt.Printf("Failed to write ini file: %v", err)

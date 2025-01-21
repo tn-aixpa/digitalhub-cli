@@ -21,6 +21,8 @@ func init() {
 }
 
 func removeHandler(args []string, fs *flag.FlagSet) {
+	ini.DefaultHeader = true
+
 	if len(args) < 1 {
 		log.Fatalf("Error: Environment is a required positional argument.\nUsage: dhcli remove <environment>")
 	}
@@ -35,6 +37,11 @@ func removeHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	cfg.DeleteSection(sectionName)
+
+	defaultSection := cfg.Section("DEFAULT")
+	if defaultSection.Key("environment").String() == sectionName {
+		defaultSection.DeleteKey("environment")
+	}
 
 	err = cfg.SaveTo(iniPath)
 	if err != nil {
