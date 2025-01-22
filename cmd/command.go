@@ -21,7 +21,7 @@ func RegisterCommand(cmd *Command) {
 
 func ExecuteCommand(args []string) {
 	if len(args) < 1 {
-		fmt.Println("Usage: ./dh-cli <command> [options]")
+		fmt.Println("Usage: ./dhcli <command> [options]")
 		fmt.Println("\nAvailable commands:")
 		for _, cmd := range commands {
 			fmt.Printf("  %s: %s\n", cmd.Name, cmd.Description)

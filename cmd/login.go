@@ -17,6 +17,8 @@ import (
 	"strings"
 
 	"gopkg.in/ini.v1"
+
+	"dhcli/utils"
 )
 
 var (
@@ -27,11 +29,9 @@ var (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "login",
-		Description: "DH CLI login",
-		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("e", "", "environment")
-		},
-		Handler: loginHandler,
+		Description: "./dhcli login <environment>",
+		SetupFlags:  func(fs *flag.FlagSet) {},
+		Handler:     loginHandler,
 	})
 }
 
@@ -39,25 +39,7 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	// Read config from ini file
-	cfg, err := ini.Load(getIniPath())
-	if err != nil {
-		log.Fatalf("Failed to read configuration file: %v", err)
-	}
-
-	fs.Parse(args)
-	sectionName := fs.Lookup("e").Value.String()
-	if sectionName == "" {
-		defaultEnvironment := getDefaultEnvironment(cfg)
-		if defaultEnvironment == "" {
-			log.Fatalf("Error: environment flag (-e) was not passed and default environment is not specified in ini file.\nUsage: dhcli login -e <environment>")
-		}
-		sectionName = defaultEnvironment
-	}
-
-	section, err := cfg.GetSection(sectionName)
-	if err != nil {
-		log.Fatalf("Failed to read section '%s': %v.", sectionName, err)
-	}
+	cfg, section := loadConfig(args)
 
 	// Generate PKCE values
 	codeVerifier, codeChallenge := generatePKCE()
@@ -74,7 +56,7 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	fmt.Println(authURL)
 
 	// Open the URL in the default browser
-	err = openBrowser(authURL)
+	err := openBrowser(authURL)
 	if err != nil {
 		log.Printf("Error opening browser: %v", err)
 	}
@@ -142,7 +124,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 		fmt.Fprintf(w, "<h1>Authorization Successful</h1>")
 		fmt.Fprintf(w, `<h2>Token response is:</h2>`)
 		fmt.Fprintf(w, "<pre>%s</pre>", tokenResponse)
-		fmt.Fprintf(w, `<p>You may now close this window.</p>`)
+		fmt.Fprintf(w, `<h2>You may now close this window.</h2>`)
 
 		// Save response token
 		log.Println("Token Response:", string(tokenResponse))
@@ -155,11 +137,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 		}
 
 		section.ReflectFrom(&openIDConfig)
-		err := cfg.SaveTo(getIniPath())
-		if err != nil {
-			fmt.Printf("Failed to update ini file: %v", err)
-			os.Exit(1)
-		}
+		utils.SaveIni(cfg)
 
 		// Close cli immediately in a goroutine, this keeps the browser open but releases the command line tool
 		go func() {
@@ -234,13 +212,33 @@ func openBrowser(url string) error {
 	return cmd.Start()
 }
 
-func getDefaultEnvironment(cfg *ini.File) string {
-	if !cfg.HasSection("DEFAULT") {
-		return ""
+func loadConfig(args []string) (*ini.File, *ini.Section) {
+	cfg := utils.LoadIni()
+
+	sectionName := ""
+
+	if len(args) == 0 {
+		if cfg.HasSection("DEFAULT") {
+			defaultSection, err := cfg.GetSection("DEFAULT")
+			if err != nil {
+				log.Fatalf("Error while reading default environment: %v", err)
+			}
+			if defaultSection.HasKey("current_environment") {
+				sectionName = defaultSection.Key("current_environment").String()
+			}
+		}
+
+		if sectionName == "" {
+			log.Fatalf("Error: environment was not passed and default environment is not specified in ini file.")
+		}
+	} else {
+		sectionName = args[0]
 	}
-	defaultSection, err := cfg.GetSection("DEFAULT")
+
+	section, err := cfg.GetSection(sectionName)
 	if err != nil {
-		log.Fatalf("Error while reading default environment: %v", err)
+		log.Fatalf("Failed to read section '%s': %v.", sectionName, err)
 	}
-	return defaultSection.Key("environment").String()
+
+	return cfg, section
 }

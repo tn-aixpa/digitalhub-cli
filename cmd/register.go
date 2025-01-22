@@ -3,13 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"gopkg.in/ini.v1"
+
+	"dhcli/utils"
 )
 
 type OpenIDConfig struct {
@@ -26,7 +27,7 @@ func init() {
 
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "DH CLI register",
+		Description: "./dhcli register [-s <scope>] <environment> <authorization_provider> <client_id>",
 		SetupFlags: func(fs *flag.FlagSet) {
 			fs.String("s", "", "scope")
 		},
@@ -39,7 +40,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 3 {
-		log.Fatalf("Error: The following positional parameters are required: environment name, authorization URL, client ID.\nUsage: dhcli register [-s <optional_scope>] <environment> <url> <client_id>")
+		log.Fatalf("Error: The following positional parameters are required: environment name, authorization URL, client ID.\nUsage: ./dhcli register [-s <scope>] <environment> <authorization_provider> <client_id>")
 	}
 	fs.Parse(args)
 	scope := fs.Lookup("s").Value.String()
@@ -49,11 +50,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	clientId := fs.Args()[2]
 
 	// Read or initialize ini file
-	iniPath := getIniPath()
-	cfg, err := ini.Load(iniPath)
-	if err != nil {
-		cfg = ini.Empty()
-	}
+	cfg := utils.LoadIni()
 
 	// Fetch OpenID configuration and write to ini file
 	openIDConfig := fetchOpenIDConfig("https://" + authUrl + "/.well-known/openid-configuration")
@@ -61,11 +58,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	openIDConfig.Scope = scope
 
 	cfg.Section(sectionName).ReflectFrom(&openIDConfig)
-	err = cfg.SaveTo(iniPath)
-	if err != nil {
-		fmt.Printf("Failed to write ini file: %v", err)
-		os.Exit(1)
-	}
+	utils.SaveIni(cfg)
 }
 
 func fetchOpenIDConfig(configURL string) OpenIDConfig {
@@ -91,7 +84,7 @@ func fetchOpenIDConfig(configURL string) OpenIDConfig {
 func getIniPath() string {
 	iniPath, err := os.UserHomeDir()
 	if err != nil {
-		iniPath = "./"
+		iniPath = "."
 	}
 	iniPath += "/.cli.ini"
 
