@@ -213,7 +213,7 @@ func openBrowser(url string) error {
 }
 
 func loadConfig(args []string) (*ini.File, *ini.Section) {
-	cfg := utils.LoadIni()
+	cfg := utils.LoadIni(false)
 
 	sectionName := ""
 

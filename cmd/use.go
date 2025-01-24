@@ -28,7 +28,7 @@ func useHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	environmentName := args[0]
-	cfg := utils.LoadIni()
+	cfg := utils.LoadIni(false)
 	if !cfg.HasSection(environmentName) {
 		log.Fatalf("Specified environment does not exist.")
 	}

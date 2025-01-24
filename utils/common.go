@@ -14,15 +14,18 @@ func getIniPath() string {
 	if err != nil {
 		iniPath = "."
 	}
-	iniPath += "/" + iniName
+	iniPath += string(os.PathSeparator) + iniName
 
 	return iniPath
 }
 
-func LoadIni() *ini.File {
+func LoadIni(createOnMissing bool) *ini.File {
 	cfg, err := ini.Load(getIniPath())
 	if err != nil {
-		log.Fatalf("Failed to read ini file: %v", err)
+		if !createOnMissing {
+			log.Fatalf("Failed to read ini file: %v", err)
+		}
+		return ini.Empty()
 	}
 
 	return cfg

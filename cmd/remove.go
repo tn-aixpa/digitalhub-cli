@@ -29,7 +29,7 @@ func removeHandler(args []string, fs *flag.FlagSet) {
 
 	sectionName := args[0]
 
-	cfg := utils.LoadIni()
+	cfg := utils.LoadIni(false)
 
 	cfg.DeleteSection(sectionName)
 

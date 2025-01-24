@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 
 	"gopkg.in/ini.v1"
 
@@ -50,7 +49,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	clientId := fs.Args()[2]
 
 	// Read or initialize ini file
-	cfg := utils.LoadIni()
+	cfg := utils.LoadIni(true)
 
 	// Fetch OpenID configuration and write to ini file
 	openIDConfig := fetchOpenIDConfig("https://" + authUrl + "/.well-known/openid-configuration")
@@ -79,14 +78,4 @@ func fetchOpenIDConfig(configURL string) OpenIDConfig {
 	}
 
 	return config
-}
-
-func getIniPath() string {
-	iniPath, err := os.UserHomeDir()
-	if err != nil {
-		iniPath = "."
-	}
-	iniPath += "/.cli.ini"
-
-	return iniPath
 }
