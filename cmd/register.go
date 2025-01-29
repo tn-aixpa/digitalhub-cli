@@ -57,6 +57,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	openIDConfig.Scope = scope
 
 	cfg.Section(sectionName).ReflectFrom(&openIDConfig)
+	utils.GitignoreAddIniFile()
 	utils.SaveIni(cfg)
 }
 

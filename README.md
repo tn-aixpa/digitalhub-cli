@@ -44,3 +44,12 @@ If no environment is specified, it will use the one set by the `use` command.
 ./dhcli remove bologna
 ```
 It removes the section from the configuration file.
+
+## `init`
+`init` takes the following parameters:
+- `core_endpoint`
+- `token`
+``` sh
+./dhcli init <core_endpoint> <token>
+```
+It installs the python package through pip, matching core's version.

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"log"
 	"os"
 
@@ -35,5 +36,29 @@ func SaveIni(cfg *ini.File) {
 	err := cfg.SaveTo(getIniPath())
 	if err != nil {
 		log.Fatalf("Failed to update ini file: %v", err)
+	}
+}
+
+func GitignoreAddIniFile() {
+	path := "./.gitignore"
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatalf("Cannot open .gitignore file: %v", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if scanner.Text() == iniName {
+			return
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal("Error while reading .gitignore file contents: %v", err)
+	}
+
+	if _, err = f.WriteString(iniName); err != nil {
+		log.Fatalf("Error while adding entry to .gitignore file: %v", err)
 	}
 }
