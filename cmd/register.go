@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"gopkg.in/ini.v1"
 
@@ -23,7 +25,6 @@ type OpenIDConfig struct {
 }
 
 func init() {
-
 	RegisterCommand(&Command{
 		Name:        "register",
 		Description: "./dhcli register [-s <scope>] <environment> <authorization_provider> <client_id>",
@@ -32,7 +33,6 @@ func init() {
 		},
 		Handler: registerHandler,
 	})
-
 }
 
 func registerHandler(args []string, fs *flag.FlagSet) {
@@ -57,7 +57,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	openIDConfig.Scope = scope
 
 	cfg.Section(sectionName).ReflectFrom(&openIDConfig)
-	utils.GitignoreAddIniFile()
+	gitignoreAddIniFile()
 	utils.SaveIni(cfg)
 }
 
@@ -79,4 +79,28 @@ func fetchOpenIDConfig(configURL string) OpenIDConfig {
 	}
 
 	return config
+}
+
+func gitignoreAddIniFile() {
+	path := "./.gitignore"
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatalf("Cannot open .gitignore file: %v", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if scanner.Text() == utils.IniName {
+			return
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal("Error while reading .gitignore file contents: %v", err)
+	}
+
+	if _, err = f.WriteString(utils.IniName); err != nil {
+		log.Fatalf("Error while adding entry to .gitignore file: %v", err)
+	}
 }
