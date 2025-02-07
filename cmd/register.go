@@ -2,16 +2,19 @@ package cmd
 
 import (
 	"bufio"
+	"dhcli/utils"
 	"encoding/json"
+	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"reflect"
+	"time"
 
 	"gopkg.in/ini.v1"
-
-	"dhcli/utils"
 )
 
 type OpenIDConfig struct {
@@ -24,12 +27,19 @@ type OpenIDConfig struct {
 	RefreshToken          string `json:"refresh_token" ini:"refresh_token"`
 }
 
+type CoreConfig struct {
+	Name     string `json:"name" ini:"name"`
+	Issuer   string `json:"issuer" ini:"issuer"`
+	Version  string `json:"version" ini:"version"`
+	ClientID string `json:"client_id" ini:"client_id"`
+}
+
 func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "./dhcli register [-s <scope>] <environment> <authorization_provider> <client_id>",
+		Description: "./dhcli register [-n <name>] <endpoint>",
 		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("s", "", "scope")
+			fs.String("n", "", "name")
 		},
 		Handler: registerHandler,
 	})
@@ -38,27 +48,90 @@ func init() {
 func registerHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
-	if len(args) < 3 {
-		log.Fatalf("Error: The following positional parameters are required: environment name, authorization URL, client ID.\nUsage: ./dhcli register [-s <scope>] <environment> <authorization_provider> <client_id>")
+	if len(args) < 1 {
+		log.Fatalf("Error: Endpoint is required.\nUsage: ./dhcli register [-n <name>] <endpoint>")
 	}
 	fs.Parse(args)
-	scope := fs.Lookup("s").Value.String()
 
-	sectionName := fs.Args()[0]
-	authUrl := fs.Args()[1]
-	clientId := fs.Args()[2]
+	name := fs.Lookup("n").Value.String()
+	endpoint := fs.Args()[0]
 
 	// Read or initialize ini file
 	cfg := utils.LoadIni(true)
 
-	// Fetch OpenID configuration and write to ini file
-	openIDConfig := fetchOpenIDConfig("https://" + authUrl + "/.well-known/openid-configuration")
-	openIDConfig.ClientID = clientId
-	openIDConfig.Scope = scope
+	//collect to map+struct
+	res, coreConfig := fetchConfig(endpoint + "/.well-known/configuration")
+	if name == "" || name == "null" {
+		name = coreConfig.Name
+	}
+	cfg.Section(name).ReflectFrom(&coreConfig)
 
-	cfg.Section(sectionName).ReflectFrom(&openIDConfig)
-	gitignoreAddIniFile()
+	// Fetch OpenID configuration
+	openIDConfig := fetchOpenIDConfig(endpoint + "/.well-known/openid-configuration")
+	openIDConfig.ClientID = coreConfig.ClientID
+	cfg.Section(name).ReflectFrom(&openIDConfig)
+
+	sec := cfg.Section(name)
+
+	for k, v := range res {
+		//add missing keys
+		if !sec.HasKey(k) {
+			f := reflect.ValueOf(v)
+			var val string
+			switch f.Kind() {
+			case reflect.String:
+				val = f.String()
+			case reflect.Int, reflect.Int64:
+				val = fmt.Sprint(f.Int())
+			case reflect.Uint, reflect.Uint64:
+				val = fmt.Sprint(f.Uint())
+			case reflect.Float64:
+				val = fmt.Sprint(f.Float())
+			case reflect.Bool:
+				val = fmt.Sprint(f.Bool())
+			case reflect.TypeOf(time.Now()).Kind():
+				val = f.Interface().(time.Time).Format(time.RFC3339)
+			default:
+				val = ""
+			}
+
+			sec.NewKey(k, val)
+		}
+	}
+
+	//check for default env
+	dsec := cfg.Section("DEFAULT")
+	if !dsec.HasKey(utils.CurrentEnvironment) {
+		dsec.NewKey(utils.CurrentEnvironment, name)
+	}
+
+	// gitignoreAddIniFile()
 	utils.SaveIni(cfg)
+}
+
+func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
+	resp, err := http.Get(configURL)
+	if err != nil {
+		log.Fatalf("Error fetching core configuration: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading core configuration response: %v", err)
+	}
+
+	var res map[string]interface{}
+	if err := json.Unmarshal(body, &res); err != nil {
+		log.Fatalf("Error parsing core configuration: %v", err)
+	}
+
+	var config CoreConfig
+	if err := json.Unmarshal(body, &config); err != nil {
+		log.Fatalf("Error parsing core configuration: %v", err)
+	}
+
+	return res, config
 }
 
 func fetchOpenIDConfig(configURL string) OpenIDConfig {
@@ -79,6 +152,33 @@ func fetchOpenIDConfig(configURL string) OpenIDConfig {
 	}
 
 	return config
+}
+
+func toMap(strc interface{}) (map[string]interface{}, error) {
+
+	res := make(map[string]interface{})
+
+	// get or dereference
+	val := reflect.ValueOf(strc)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	typ := val.Type()
+
+	if val.Kind() != reflect.Struct {
+		return res, errors.New("variable given is not a struct or a pointer to a struct")
+	}
+
+	//export to value
+	//NOTE: doesn't support nested structs
+	for i := 0; i < val.NumField(); i++ {
+		fName := typ.Field(i).Name
+		fValue := val.Field(i).Interface()
+		res[fName] = fValue
+	}
+
+	return res, nil
 }
 
 func gitignoreAddIniFile() {
