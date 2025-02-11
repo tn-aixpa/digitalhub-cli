@@ -37,9 +37,10 @@ type CoreConfig struct {
 func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "./dhcli register [-n <name>] <endpoint>",
+		Description: "./dhcli register [-n <name> -s <scope>] <endpoint>",
 		SetupFlags: func(fs *flag.FlagSet) {
 			fs.String("n", "", "name")
+			fs.String("s", "", "scope")
 		},
 		Handler: registerHandler,
 	})
@@ -54,6 +55,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	fs.Parse(args)
 
 	name := fs.Lookup("n").Value.String()
+	scope := fs.Lookup("s").Value.String()
 	endpoint := fs.Args()[0]
 
 	// Read or initialize ini file
@@ -64,14 +66,14 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	if name == "" || name == "null" {
 		name = coreConfig.Name
 	}
-	cfg.Section(name).ReflectFrom(&coreConfig)
+	sec := cfg.Section(name)
+	sec.ReflectFrom(&coreConfig)
 
 	// Fetch OpenID configuration
 	openIDConfig := fetchOpenIDConfig(endpoint + "/.well-known/openid-configuration")
 	openIDConfig.ClientID = coreConfig.ClientID
-	cfg.Section(name).ReflectFrom(&openIDConfig)
-
-	sec := cfg.Section(name)
+	openIDConfig.Scope = scope
+	sec.ReflectFrom(&openIDConfig)
 
 	for k, v := range res {
 		//add missing keys
@@ -91,6 +93,8 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 				val = fmt.Sprint(f.Bool())
 			case reflect.TypeOf(time.Now()).Kind():
 				val = f.Interface().(time.Time).Format(time.RFC3339)
+			case reflect.Slice:
+				val = fmt.Sprint(f.Interface())
 			default:
 				val = ""
 			}
