@@ -7,7 +7,10 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const IniName = ".cli.ini"
+const (
+	IniName            = ".dhcore.ini"
+	CurrentEnvironment = "current_environment"
+)
 
 func getIniPath() string {
 	iniPath, err := os.UserHomeDir()

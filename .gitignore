@@ -1,3 +1,4 @@
 .idea
-.cli.ini
+.dhcore.ini
 .DS_STORE
+dhcli

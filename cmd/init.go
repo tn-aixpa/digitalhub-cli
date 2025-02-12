@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
@@ -17,7 +16,7 @@ import (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "init",
-		Description: "./dhcli init <endpoint_core>",
+		Description: "./dhcli init <environment>",
 		SetupFlags:  func(fs *flag.FlagSet) {},
 		Handler:     initHandler,
 	})
@@ -41,25 +40,10 @@ func initHandler(args []string, fs *flag.FlagSet) {
 		log.Fatalf("Failed to retrieve pip version: %v", err)
 	}
 
-	if len(args) < 2 {
-		log.Fatalf("Error: Core endpoint and token are required positional arguments.\nUsage: ./dhcli init <core_endpoint> <token>")
-	}
+	// Read config from ini file
+	_, section := loadConfig(args)
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", args[0], nil)
-	if err != nil {
-		log.Fatalf("Failed to set up HTTP request: %v", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+args[1])
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("Error fetching API version: %v", err)
-	}
-	defer resp.Body.Close()
-
-	apiVersion := resp.Header["X-Api-Version"][0]
+	apiVersion := section.Key("version").String()
 	apiVersionMinor := apiVersion[:strings.LastIndex(apiVersion, ".")]
 
 	// Ask for confirmation
@@ -84,7 +68,7 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	cmd := "pip install digitalhub~=" + apiVersionMinor
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
-		log.Fatalf("Failed to execute command: %v", err)
+		log.Fatalf("Failed to execute command: %v; %v", err, string(out[:]))
 	}
 	fmt.Println(string(out))
 }
