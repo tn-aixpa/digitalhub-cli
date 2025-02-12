@@ -37,10 +37,9 @@ type CoreConfig struct {
 func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "./dhcli register [-n <name> -s <scope>] <endpoint>",
+		Description: "./dhcli register [-n <name>] <endpoint>",
 		SetupFlags: func(fs *flag.FlagSet) {
 			fs.String("n", "", "name")
-			fs.String("s", "", "scope")
 		},
 		Handler: registerHandler,
 	})
@@ -55,7 +54,6 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	fs.Parse(args)
 
 	name := fs.Lookup("n").Value.String()
-	scope := fs.Lookup("s").Value.String()
 	endpoint := fs.Args()[0]
 
 	// Read or initialize ini file
@@ -72,7 +70,6 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	// Fetch OpenID configuration
 	openIDConfig := fetchOpenIDConfig(endpoint + "/.well-known/openid-configuration")
 	openIDConfig.ClientID = coreConfig.ClientID
-	openIDConfig.Scope = scope
 	sec.ReflectFrom(&openIDConfig)
 
 	for k, v := range res {
@@ -120,6 +117,10 @@ func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		log.Fatalf("Core responded with error %v", resp.Status)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Error reading core configuration response: %v", err)
@@ -144,6 +145,10 @@ func fetchOpenIDConfig(configURL string) OpenIDConfig {
 		log.Fatalf("Error fetching OpenID configuration: %v", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Fatalf("Core responded with error %v", resp.Status)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

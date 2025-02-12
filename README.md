@@ -1,55 +1,50 @@
 # dhcli
 
-Before interacting with the CLI, you must register a corresponding app in AAC. You can use the contents of `sample-client.yaml` to import an app quickly.
-
 ## `register`
 `register` takes the following parameters:
-- `-s scope` (Optional)
-- `environment`
-- `authorization_provider`
-- `client_id`
+- `-n name` (Optional)
+- `core endpoint`
 ``` sh
-./dhcli register -s offline_access bologna aac.digitalhub-dev.smartcommunitylab.it c_dhcliclientid
+./dhcli register -n example http://localhost:8080
 ```
-It will create a `.cli.ini` file in the user's home directory (or, if not possible, in the current one), generating a section with the specified environment name and containing the configuration retrieved from the authorization provider.
+It will create a `.dhcore.ini` file (if it doesn't already exist) in the user's home directory, or, if not possible, in the current one. A section will be appended, using the provided name (or, if missing, the one returned by the endpoint), containing the environment's configuration. This environment will be set as default, unless one is already set.
 
 ## `use`
 `use` takes the following parameters:
 - `environment`
 ``` sh
-./dhcli use bologna
+./dhcli use example
 ```
-It sets the environment to use when none is specified in the configuration file's default section.
+This will set the default environment.
 
 ## `login`
 `login` is to be used after registering an environment with the `register` command. It takes the following parameters:
 - `environment` (Optional)
 ``` sh
-./dhcli login bologna
+./dhcli login example
 ```
-It will read the corresponding section from the configuration file and log in to the authorization provider. It will update the section with the access token obtained. If no environment is specified, it will use the one set by the `use` command.
+It will read the corresponding section from the configuration file and start the log in procedure. It will update this section with the access token obtained. If no environment is specified, it will use the default one.
 
 ## `refresh`
 `refresh` is to be used after the `login` command, to update `access_token` and `refresh_token`. It takes the following parameters:
 - `environment` (Optional)
 ``` sh
-./dhcli refresh bologna
+./dhcli refresh example
 ```
-If no environment is specified, it will use the one set by the `use` command.
+If no environment is specified, it will use the default one.
 
 ## `remove`
 `remove` takes the following parameters:
 - `environment`
 ``` sh
-./dhcli remove bologna
+./dhcli remove example
 ```
-It removes the section from the configuration file.
+It will remove the section from the configuration file.
 
 ## `init`
 `init` takes the following parameters:
-- `core_endpoint`
-- `token`
+- `environment` (Optional)
 ``` sh
-./dhcli init <core_endpoint> <token>
+./dhcli init example
 ```
-It installs the python package through pip, matching core's version.
+It will install the python package through pip, matching core's minor version as indicated in the specified environment. If no environment is specified, it will use the default one.
