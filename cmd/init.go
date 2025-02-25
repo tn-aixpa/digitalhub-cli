@@ -17,13 +17,16 @@ func init() {
 	RegisterCommand(&Command{
 		Name:        "init",
 		Description: "./dhcli init <environment>",
-		SetupFlags:  func(fs *flag.FlagSet) {},
-		Handler:     initHandler,
+		SetupFlags: func(fs *flag.FlagSet) {
+			fs.Bool("pre", false, "pip --pre flag")
+		},
+		Handler: initHandler,
 	})
 }
 
 func initHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
+	fs.Parse(args)
 
 	// Check if Python version is supported
 	versionOutput, err := exec.Command("bash", "-c", "python --version").Output()
@@ -41,7 +44,11 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	// Read config from ini file
-	_, section := loadConfig(args)
+	loadArgs := args
+	if len(args) > 0 && args[0] == "--pre" {
+		loadArgs = args[1:]
+	}
+	_, section := loadConfig(loadArgs)
 
 	apiVersion := section.Key("version").String()
 	apiVersionMinor := apiVersion[:strings.LastIndex(apiVersion, ".")]
@@ -65,12 +72,21 @@ func initHandler(args []string, fs *flag.FlagSet) {
 		}
 	}
 
-	cmd := "pip install digitalhub~=" + apiVersionMinor
-	out, err := exec.Command("bash", "-c", cmd).Output()
-	if err != nil {
-		log.Fatalf("Failed to execute command: %v; %v", err, string(out[:]))
+	pipOption := "~=" + apiVersionMinor + ".0"
+	pre := fs.Lookup("pre").Value.String()
+	if pre == "true" {
+		pipOption = " --pre"
 	}
-	fmt.Println(string(out))
+
+	for _, pkg := range packageList() {
+		cmd := "pip install " + pkg + pipOption
+		fmt.Println(cmd)
+		out, err := exec.Command("bash", "-c", cmd).Output()
+		if err != nil {
+			log.Fatalf("Failed to execute command: %v; %v", err, string(out[:]))
+		}
+		fmt.Println(string(out))
+	}
 }
 
 func supportedPythonVersion(pythonVersion string) bool {
@@ -90,4 +106,15 @@ func supportedPythonVersion(pythonVersion string) bool {
 	}
 
 	return true
+}
+
+func packageList() []string {
+	return []string{
+		"digitalhub[full]",
+		"digitalhub-runtime-python",
+		"digitalhub-runtime-container",
+		"digitalhub-runtime-modelserve",
+		"digitalhub-runtime-dbt[local]",
+		"digitalhub-runtime-kfp",
+	}
 }

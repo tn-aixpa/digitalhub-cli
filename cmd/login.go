@@ -217,7 +217,7 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 
 	sectionName := ""
 
-	if len(args) == 0 {
+	if len(args) == 0 || args[0] == "" {
 		if cfg.HasSection("DEFAULT") {
 			defaultSection, err := cfg.GetSection("DEFAULT")
 			if err != nil {

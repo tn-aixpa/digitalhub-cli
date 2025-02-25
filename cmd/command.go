@@ -34,7 +34,7 @@ func ExecuteCommand(args []string) {
 	command, exists := commands[commandName]
 	if !exists {
 		fmt.Printf("Unknown command: %s\n", commandName)
-		fmt.Println("Use ./dh-cli to see available commands.")
+		fmt.Println("Use ./dhcli to see available commands.")
 		os.Exit(1)
 	}
 
