@@ -2,7 +2,34 @@
 
 The Command-Line Interface (CLI) is a simple tool that offers a number of functionalities to set the platform up.
 
-## `register`
+The executable can be downloaded in the *Releases* page.
+
+## Build from source
+
+If you wish to build the executable from source, run the following:
+
+``` sh
+go build
+```
+
+It will generate an executable named `dhcli` for your operating system and architecture. To change the target OS or architecture, you need to set the `GOOS` and `GOARCH` variables and build it. Some examples:
+``` sh
+GOOS=linux GOARCH=amd64 go build -o dhcli-linux-amd64
+```
+``` sh
+GOOS=darwin GOARCH=arm64 go build -o dhcli-darwin-arm64
+```
+``` sh
+GOOS=windows GOARCH=amd64 go build -o dhcli-win-amd64.exe
+```
+
+For a complete list of available values, run `go tool dist list`, which will return the list of valid OS/ARCH combinations.
+
+## Commands
+
+Available commands and their parameters are listed here. In these examples, the executable is named `dhcli`. When you provide *optional* parameters, make sure they are listed **before** *mandatory* ones.
+
+### `register`
 `register` takes the following parameters:
 
 - `-n name` (Optional)
@@ -13,7 +40,7 @@ The Command-Line Interface (CLI) is a simple tool that offers a number of functi
 ```
 It will create a `.dhcore.ini` file (if it doesn't already exist) in the user's home directory, or, if not possible, in the current one. A section will be appended, using the provided name (or, if missing, the one returned by the endpoint), containing the environment's configuration. This environment will be set as default, unless one is already set.
 
-## `use`
+### `use`
 `use` takes the following parameters:
 
 - `environment`
@@ -23,7 +50,7 @@ It will create a `.dhcore.ini` file (if it doesn't already exist) in the user's 
 ```
 This will set the default environment.
 
-## `login`
+### `login`
 `login` is to be used after registering an environment with the `register` command. It takes the following parameters:
 
 - `environment` (Optional)
@@ -33,7 +60,7 @@ This will set the default environment.
 ```
 It will read the corresponding section from the configuration file and start the log in procedure. It will update this section with the access token obtained. If no environment is specified, it will use the default one.
 
-## `refresh`
+### `refresh`
 `refresh` is to be used after the `login` command, to update `access_token` and `refresh_token`. It takes the following parameters:
 
 - `environment` (Optional)
@@ -43,7 +70,7 @@ It will read the corresponding section from the configuration file and start the
 ```
 If no environment is specified, it will use the default one.
 
-## `remove`
+### `remove`
 `remove` takes the following parameters:
 
 - `environment`
@@ -53,7 +80,7 @@ If no environment is specified, it will use the default one.
 ```
 It will remove the section from the configuration file.
 
-## `init`
+### `init`
 `init` takes the following parameters:
 
 - `environment` (Optional)
