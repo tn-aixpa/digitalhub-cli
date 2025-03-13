@@ -1,0 +1,12 @@
+id: f884eb3fccca4ab0b701daaaf96358da
+kind: artifact
+name: my-artifact
+project: my-project
+metadata:
+  name: MyArtifact
+  description: This is a sample artifact.
+  project: my-project
+  labels:
+    - sample
+spec:
+  path: sample/path/

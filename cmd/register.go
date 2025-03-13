@@ -52,7 +52,6 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 		log.Fatalf("Error: Endpoint is required.\nUsage: ./dhcli register [-n <name>] <endpoint>")
 	}
 	fs.Parse(args)
-
 	name := fs.Lookup("n").Value.String()
 	endpoint := fs.Args()[0]
 

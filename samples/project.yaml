@@ -1,0 +1,9 @@
+id: my-project
+name: my-project
+project: my-project
+kind: project
+metadata:
+  name: MyProject
+  description: This is a sample project.
+  labels:
+    - sample
