@@ -12,7 +12,7 @@ import (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "read",
-		Description: "./dhcli read",
+		Description: "./dhcli read [-n <name> -p <project> -e <entity type> -i <id>]",
 		SetupFlags: func(fs *flag.FlagSet) {
 			fs.String("n", "", "environment name")
 			fs.String("p", "", "project")

@@ -11,7 +11,7 @@ import (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "delete",
-		Description: "./dhcli delete",
+		Description: "./dhcli delete [-n <name> -e <entity type> -i <id>] <project>",
 		SetupFlags: func(fs *flag.FlagSet) {
 			fs.String("n", "", "environment name")
 			fs.String("e", "", "entity type")
