@@ -55,13 +55,14 @@ func BuildCoreUrl(section *ini.Section, method string, project string, entity st
 			mid = "/-"
 			endpoint += "/" + entity
 			if id != "" {
-				if method != "DELETE" {
+				if method != "DELETE" || entity == "secrets" || entity == "runs" {
 					endpoint += "/" + id
 				} else {
 					endpoint += "?name=" + id
 				}
-
 			}
+		} else if method == "DELETE" {
+			endpoint += "?cascade=true"
 		}
 	}
 

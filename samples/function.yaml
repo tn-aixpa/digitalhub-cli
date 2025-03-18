@@ -1,0 +1,13 @@
+kind: python
+name: my-function
+project: my-project
+metadata:
+  name: MyFunction
+  description: This is a sample function.
+  project: my-project
+  labels:
+    - sample
+spec:
+  python_version: PYTHON3_10
+  source:
+    lang: python

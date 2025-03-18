@@ -1,9 +1,9 @@
-kind: artifact
-name: my-artifact
+kind: dataitem
+name: my-dataitem
 project: my-project
 metadata:
-  name: MyArtifact
-  description: This is a sample artifact.
+  name: MyDataItem
+  description: This is a sample data item.
   project: my-project
   labels:
     - sample

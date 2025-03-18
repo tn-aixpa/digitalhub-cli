@@ -1,11 +1,12 @@
-kind: artifact
-name: my-artifact
+kind: model
+name: my-model
 project: my-project
 metadata:
-  name: MyArtifact
-  description: This is a sample artifact.
+  name: MyModel
+  description: This is a sample model.
   project: my-project
   labels:
     - sample
 spec:
   path: sample/path/
+  parameters: {}
