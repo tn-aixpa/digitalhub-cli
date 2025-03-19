@@ -21,17 +21,17 @@ type OpenIDConfig struct {
 	AuthorizationEndpoint string `json:"authorization_endpoint" ini:"authorization_endpoint"`
 	TokenEndpoint         string `json:"token_endpoint" ini:"token_endpoint"`
 	Issuer                string `json:"issuer" ini:"issuer"`
-	ClientID              string `json:"client_id" ini:"client_id"`
+	ClientID              string `json:"dhcore_client_id" ini:"dhcore_client_id"`
 	Scope                 string `json:"scope" ini:"scope"`
 	AccessToken           string `json:"access_token" ini:"access_token"`
 	RefreshToken          string `json:"refresh_token" ini:"refresh_token"`
 }
 
 type CoreConfig struct {
-	Name     string `json:"name" ini:"name"`
+	Name     string `json:"dhcore_name" ini:"dhcore_name"`
 	Issuer   string `json:"issuer" ini:"issuer"`
-	Version  string `json:"version" ini:"version"`
-	ClientID string `json:"client_id" ini:"client_id"`
+	Version  string `json:"dhcore_version" ini:"dhcore_version"`
+	ClientID string `json:"dhcore_client_id" ini:"dhcore_client_id"`
 }
 
 func init() {
@@ -63,6 +63,9 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	res, coreConfig := fetchConfig(endpoint + "/.well-known/configuration")
 	if name == "" || name == "null" {
 		name = coreConfig.Name
+		if name == "" {
+			log.Fatalf("Failed to register: environment name not specified and not defined in core's configuration.")
+		}
 	}
 	sec := cfg.Section(name)
 	sec.ReflectFrom(&coreConfig)
@@ -108,6 +111,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 
 	// gitignoreAddIniFile()
 	utils.SaveIni(cfg)
+	log.Printf("'%v' registered.", name)
 }
 
 func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {

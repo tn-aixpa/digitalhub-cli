@@ -33,7 +33,7 @@ Available commands and their parameters are listed here. In these examples, the 
 `register` takes the following parameters:
 
 - `-n name` (Optional)
-- `core endpoint`
+- `core_endpoint`
 
 ``` sh
 ./dhcli register -n example http://localhost:8080

@@ -39,4 +39,5 @@ func removeHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	utils.SaveIni(cfg)
+	log.Printf("'%v' has been removed.", sectionName)
 }

@@ -37,4 +37,5 @@ func useHandler(args []string, fs *flag.FlagSet) {
 	defaultSection.Key("current_environment").SetValue(environmentName)
 
 	utils.SaveIni(cfg)
+	log.Printf("Switched default to '%v'.", environmentName)
 }

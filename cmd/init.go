@@ -50,7 +50,7 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	}
 	_, section := loadConfig(loadArgs)
 
-	apiVersion := section.Key("version").String()
+	apiVersion := section.Key("dhcore_version").String()
 	apiVersionMinor := apiVersion[:strings.LastIndex(apiVersion, ".")]
 
 	// Ask for confirmation
