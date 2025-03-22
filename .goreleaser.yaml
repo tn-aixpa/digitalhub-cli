@@ -43,9 +43,8 @@ release:
   replace_existing_artifacts: true
 
 brews:
-  - github:
+  - repository:
         owner: scc-digitalhub
         name: digitalhub-cli
-    folder: Formula
     homepage: https://scc-digitalhub.github.io/
     description: A command-line tool for DigitalHub platform.
