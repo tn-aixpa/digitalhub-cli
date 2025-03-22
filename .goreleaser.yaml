@@ -1,0 +1,39 @@
+version: 2
+
+project_name: dhcli
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+
+archives:
+  - formats: [tar.gz]
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}-
+      {{- if eq .Os "windows" }}windows
+      {{- else if eq .Os "darwin" }}darwin
+      {{- else if eq .Os "linux" }}linux
+      {{- else }}{{ .Os }}{{ end }}
+      {{- if eq .Arch "all" }}
+      {{- else }}-{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+universal_binaries:
+  - replace: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
