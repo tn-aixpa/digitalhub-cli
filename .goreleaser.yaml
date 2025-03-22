@@ -46,5 +46,6 @@ brews:
   - repository:
         owner: scc-digitalhub
         name: digitalhub-cli
+    directory: Formula
     homepage: https://scc-digitalhub.github.io/
     description: A command-line tool for DigitalHub platform.
