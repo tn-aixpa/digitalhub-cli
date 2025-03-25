@@ -1,5 +1,5 @@
 .idea
 .dhcore.ini
 .DS_STORE
-dhcli# Added by goreleaser init:
+dhcli
 dist/
