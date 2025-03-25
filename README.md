@@ -71,14 +71,14 @@ If no environment is specified, it will use the default one.
 It will remove the section from the configuration file.
 
 ### `init`
-`init` takes the following parameters:
+`init` is used to install the platform's python packages; therefore, Python must be installed. It takes the following parameters:
 
 - `environment` (Optional)
 
 ``` sh
 ./dhcli init example
 ```
-It will install the python package through pip, matching core's minor version as indicated in the specified environment. If no environment is specified, it will use the default one.
+It will match core's minor version as indicated in the specified environment. If no environment is specified, it will use the default one.
 
 
 ## Build and publish
