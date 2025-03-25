@@ -62,6 +62,9 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	res, coreConfig := fetchConfig(endpoint + "/.well-known/configuration")
 	if name == "" || name == "null" {
 		name = coreConfig.Name
+		if name == "" {
+			log.Fatalf("Environment name not specified and not defined in core's configuration.")
+		}
 	}
 	sec := cfg.Section(name)
 	sec.ReflectFrom(&coreConfig)
