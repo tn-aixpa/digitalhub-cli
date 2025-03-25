@@ -2,3 +2,4 @@
 .dhcore.ini
 .DS_STORE
 dhcli
+dist/
