@@ -60,4 +60,5 @@ func refreshHandler(args []string, fs *flag.FlagSet) {
 
 	section.ReflectFrom(&openIDConfig)
 	utils.SaveIni(cfg)
+	log.Printf("Token refreshed.")
 }
