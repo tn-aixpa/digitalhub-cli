@@ -107,9 +107,5 @@ func packageList() []string {
 	return []string{
 		"digitalhub[full]",
 		"digitalhub-runtime-python",
-		"digitalhub-runtime-container",
-		"digitalhub-runtime-modelserve",
-		"digitalhub-runtime-dbt[local]",
-		"digitalhub-runtime-kfp",
 	}
 }
