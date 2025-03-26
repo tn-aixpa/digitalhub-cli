@@ -123,10 +123,15 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		// Give feedback to user
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, "<h1>Authorization Successful</h1>")
-		fmt.Fprintf(w, `<h2>Token response is:</h2>`)
-		fmt.Fprintf(w, "<pre>%s</pre>", tokenResponse)
-		fmt.Fprintf(w, `<h2>You may now close this window.</h2>`)
+		fmt.Fprintf(w, "<div style=\"margin: 24px 0px 0px 24px;\">")
+		fmt.Fprintf(w, "<h1>Authorization successful</h1>")
+		fmt.Fprintf(w, `<h3>You may now close this window.</h3>`)
+		fmt.Fprintf(w, `<h3>Token response:</h3>`)
+		fmt.Fprintf(w, `<div>`)
+		fmt.Fprintf(w, "<button style=\"position: absolute;left: 774px;padding: 10px;opacity: 0.95;cursor: pointer;\" onclick=\"navigator.clipboard.writeText(document.getElementById('resp').innerHTML)\">Copy</button>")
+		fmt.Fprintf(w, "<div id=\"resp\" style=\"width: 800px;font-family: courier;overflow: auto;height: 320px;overflow-wrap: break-word;\">%s</div>", tokenResponse)
+		fmt.Fprintf(w, "</div>")
+		fmt.Fprintf(w, "</div>")
 
 		// Save response token
 		slog.Debug("Token response received correctly.", "Response", string(tokenResponse))
