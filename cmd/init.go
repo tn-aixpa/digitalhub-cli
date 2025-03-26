@@ -28,20 +28,13 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	fs.Parse(args)
 
 	// Check if Python version is supported
-	versionOutput, err := exec.Command("bash", "-c", "python --version").Output()
+	versionOutput, err := exec.Command("python3", "--version").Output()
 	if err != nil {
-		fmt.Printf("python does not seem to be installed: %v", err)
+		fmt.Printf("python3 does not seem to be installed: %v", err)
 		os.Exit(1)
 	}
 	if !supportedPythonVersion(string(versionOutput)) {
 		fmt.Printf("Python version is not supported (must be 3.9.xx <= v <=3.12.xx): %v", string(versionOutput))
-		os.Exit(1)
-	}
-
-	// Check if pip is installed
-	_, err = exec.Command("bash", "-c", "pip --version").Output()
-	if err != nil {
-		fmt.Printf("pip does not seem to be installed: %v", err)
 		os.Exit(1)
 	}
 
@@ -82,9 +75,7 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	for _, pkg := range packageList() {
-		cmd := "pip install " + pkg + pipOption
-		fmt.Println(cmd)
-		out, err := exec.Command("bash", "-c", cmd).Output()
+		out, err := exec.Command("python3", "-m", "pip", "install", pkg+pipOption).Output()
 		if err != nil {
 			fmt.Printf("Failed to execute command: %v; %v", err, string(out[:]))
 			os.Exit(1)
