@@ -3,10 +3,11 @@ package cmd
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -18,7 +19,7 @@ func init() {
 
 	RegisterCommand(&Command{
 		Name:        "refresh",
-		Description: "./dhcli refresh <environment>",
+		Description: "dhcli refresh <environment>",
 		SetupFlags:  func(fs *flag.FlagSet) {},
 		Handler:     refreshHandler,
 	})
@@ -40,17 +41,20 @@ func refreshHandler(args []string, fs *flag.FlagSet) {
 
 	resp, err := http.Post(openIDConfig.TokenEndpoint, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	if err != nil {
-		log.Fatalf("Error refreshing token: %v", err)
+		fmt.Printf("Error refreshing token: %v", err)
+		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response: %v", err)
+		fmt.Printf("Error reading response: %v", err)
+		os.Exit(1)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("Token server error: %s\nBody: %s", resp.Status, string(body))
+		fmt.Printf("Token server error: %s\nBody: %s", resp.Status, string(body))
+		os.Exit(1)
 	}
 
 	var responseJson map[string]interface{}
@@ -60,5 +64,5 @@ func refreshHandler(args []string, fs *flag.FlagSet) {
 
 	section.ReflectFrom(&openIDConfig)
 	utils.SaveIni(cfg)
-	log.Printf("Token refreshed.")
+	fmt.Printf("Token refreshed.")
 }

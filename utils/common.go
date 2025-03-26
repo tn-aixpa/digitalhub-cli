@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"gopkg.in/ini.v1"
@@ -26,7 +26,8 @@ func LoadIni(createOnMissing bool) *ini.File {
 	cfg, err := ini.Load(getIniPath())
 	if err != nil {
 		if !createOnMissing {
-			log.Fatalf("Failed to read ini file: %v", err)
+			fmt.Printf("Failed to read ini file: %v", err)
+			os.Exit(1)
 		}
 		return ini.Empty()
 	}
@@ -37,6 +38,7 @@ func LoadIni(createOnMissing bool) *ini.File {
 func SaveIni(cfg *ini.File) {
 	err := cfg.SaveTo(getIniPath())
 	if err != nil {
-		log.Fatalf("Failed to update ini file: %v", err)
+		fmt.Printf("Failed to update ini file: %v", err)
+		os.Exit(1)
 	}
 }

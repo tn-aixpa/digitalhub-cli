@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	cmd.ExecuteCommand(os.Args[1:]) //[]string{"login", "aac.digitalhub-dev.smartcommunitylab.it"}) //
+	cmd.ExecuteCommand(os.Args[1:])
 }

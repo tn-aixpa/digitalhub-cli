@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"os"
 
 	"gopkg.in/ini.v1"
 
@@ -13,7 +14,7 @@ func init() {
 
 	RegisterCommand(&Command{
 		Name:        "remove",
-		Description: "./dhcli remove <environment>",
+		Description: "dhcli remove <environment>",
 		SetupFlags:  func(fs *flag.FlagSet) {},
 		Handler:     removeHandler,
 	})
@@ -24,12 +25,17 @@ func removeHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 1 {
-		log.Fatalf("Error: Environment is a required positional argument.\nUsage: ./dhcli remove <environment>")
+		fmt.Printf("Error: Environment is a required positional argument.\nUsage: dhcli remove <environment>")
+		os.Exit(1)
 	}
 
 	sectionName := args[0]
 
 	cfg := utils.LoadIni(false)
+	if !cfg.HasSection(sectionName) {
+		fmt.Printf("Specified environment does not exist.")
+		os.Exit(0)
+	}
 
 	cfg.DeleteSection(sectionName)
 
@@ -39,5 +45,5 @@ func removeHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	utils.SaveIni(cfg)
-	log.Printf("'%v' has been removed.", sectionName)
+	fmt.Printf("'%v' has been removed.", sectionName)
 }
