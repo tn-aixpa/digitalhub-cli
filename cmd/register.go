@@ -154,7 +154,6 @@ func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 }
 
 func fetchOpenIDConfig(configURL string) OpenIDConfig {
-	fmt.Printf("%v\n", configURL)
 	resp, err := http.Get(configURL)
 	if err != nil {
 		fmt.Printf("Error fetching OpenID configuration: %v", err)
