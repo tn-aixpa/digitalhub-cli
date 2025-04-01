@@ -25,14 +25,14 @@ func useHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 1 {
-		fmt.Printf("Error: Environment name is a required positional argument.\nUsage: dhcli use <environment>")
+		fmt.Printf("Error: Environment name is a required positional argument.\nUsage: dhcli use <environment>\n")
 		os.Exit(1)
 	}
 
 	environmentName := args[0]
 	cfg := utils.LoadIni(false)
 	if !cfg.HasSection(environmentName) {
-		fmt.Printf("Specified environment does not exist.")
+		fmt.Printf("Specified environment does not exist.\n")
 		os.Exit(1)
 	}
 
@@ -40,5 +40,5 @@ func useHandler(args []string, fs *flag.FlagSet) {
 	defaultSection.Key("current_environment").SetValue(environmentName)
 
 	utils.SaveIni(cfg)
-	fmt.Printf("Switched default to '%v'.", environmentName)
+	fmt.Printf("Switched default to '%v'.\n", environmentName)
 }

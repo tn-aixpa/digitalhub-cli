@@ -13,8 +13,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"reflect"
 	"runtime"
+	"slices"
 	"strings"
+	"time"
 
 	"gopkg.in/ini.v1"
 
@@ -58,7 +61,7 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 	// Open the URL in the default browser
 	err := openBrowser(authURL)
 	if err != nil {
-		fmt.Printf("Error opening browser: %v", err)
+		fmt.Printf("Error opening browser: %v\n", err)
 	}
 
 	// Block the program to wait for user interaction
@@ -86,7 +89,7 @@ func generateRandomStringWithCharset(length int, charset string) string {
 	for i := range result {
 		randomByte := make([]byte, 1)
 		if _, err := rand.Read(randomByte); err != nil {
-			fmt.Printf("Error generating random string: %v", err)
+			fmt.Printf("Error generating random string: %v\n", err)
 			os.Exit(1)
 		}
 		result[i] = charset[randomByte[0]%byte(len(charset))]
@@ -104,7 +107,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		if state != generatedState {
 			http.Error(w, "Invalid state parameter", http.StatusBadRequest)
-			fmt.Printf("State mismatch: expected %s, got %s", generatedState, state)
+			fmt.Printf("State mismatch: expected %s, got %s\n", generatedState, state)
 			os.Exit(1)
 		}
 
@@ -137,6 +140,32 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 		slog.Debug("Token response received correctly.", "Response", string(tokenResponse))
 		var responseJson map[string]interface{}
 		json.Unmarshal(tokenResponse, &responseJson)
+		for k, v := range responseJson {
+			if !section.HasKey(k) && !slices.Contains([]string{"client_id", "token_type", "id_token"}, k) {
+				f := reflect.ValueOf(v)
+				var val string
+				switch f.Kind() {
+				case reflect.String:
+					val = f.String()
+				case reflect.Int, reflect.Int64:
+					val = fmt.Sprint(f.Int())
+				case reflect.Uint, reflect.Uint64:
+					val = fmt.Sprint(f.Uint())
+				case reflect.Float64:
+					val = fmt.Sprint(f.Float())
+				case reflect.Bool:
+					val = fmt.Sprint(f.Bool())
+				case reflect.TypeOf(time.Now()).Kind():
+					val = f.Interface().(time.Time).Format(time.RFC3339)
+				case reflect.Slice:
+					val = fmt.Sprint(f.Interface())
+				default:
+					val = ""
+				}
+
+				section.NewKey(k, val)
+			}
+		}
 		openIDConfig.AccessToken = responseJson["access_token"].(string)
 		refreshToken, ok := responseJson["refresh_token"]
 		if ok {
@@ -168,12 +197,13 @@ func buildAuthURL(section *ini.Section, codeChallenge, state string) string {
 	v.Set("response_type", "code")
 	v.Set("client_id", openIDConfig.ClientID)
 	v.Set("redirect_uri", redirectURI)
-	v.Set("scope", strings.Join(openIDConfig.Scope[:], " "))
 	v.Set("code_challenge", codeChallenge)
 	v.Set("code_challenge_method", "S256")
 	v.Set("state", state)
 
-	return fmt.Sprintf("%s?%s", openIDConfig.AuthorizationEndpoint, v.Encode())
+	scopesString := strings.Join(openIDConfig.Scope[:], "%20")
+
+	return fmt.Sprintf("%s?%s&scope=%s", openIDConfig.AuthorizationEndpoint, v.Encode(), scopesString)
 }
 
 func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []byte {
@@ -230,7 +260,7 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 		if cfg.HasSection("DEFAULT") {
 			defaultSection, err := cfg.GetSection("DEFAULT")
 			if err != nil {
-				fmt.Printf("Error while reading default environment: %v", err)
+				fmt.Printf("Error while reading default environment: %v\n", err)
 				os.Exit(1)
 			}
 			if defaultSection.HasKey("current_environment") {
@@ -248,7 +278,7 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 
 	section, err := cfg.GetSection(sectionName)
 	if err != nil {
-		fmt.Printf("Failed to read section '%s': %v.", sectionName, err)
+		fmt.Printf("Failed to read section '%s': %v.\n", sectionName, err)
 		os.Exit(1)
 	}
 

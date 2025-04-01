@@ -49,7 +49,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 1 {
-		fmt.Printf("Error: Endpoint is required.\nUsage: dhcli register [-n <name>] <endpoint>")
+		fmt.Printf("Error: Endpoint is required.\nUsage: dhcli register [-n <name>] <endpoint>\n")
 		os.Exit(1)
 	}
 	fs.Parse(args)
@@ -68,7 +68,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	if name == "" || name == "null" {
 		name = coreConfig.Name
 		if name == "" {
-			fmt.Printf("Failed to register: environment name not specified and not defined in core's configuration.")
+			fmt.Printf("Failed to register: environment name not specified and not defined in core's configuration.\n")
 			os.Exit(1)
 		}
 	}
@@ -116,37 +116,37 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 
 	// gitignoreAddIniFile()
 	utils.SaveIni(cfg)
-	fmt.Printf("'%v' registered.", name)
+	fmt.Printf("'%v' registered.\n", name)
 }
 
 func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 	resp, err := http.Get(configURL)
 	if err != nil {
-		fmt.Printf("Error fetching core configuration: %v", err)
+		fmt.Printf("Error fetching core configuration: %v\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Printf("Core responded with error %v", resp.Status)
+		fmt.Printf("Core responded with error %v\n", resp.Status)
 		os.Exit(1)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading core configuration response: %v", err)
+		fmt.Printf("Error reading core configuration response: %v\n", err)
 		os.Exit(1)
 	}
 
 	var res map[string]interface{}
 	if err := json.Unmarshal(body, &res); err != nil {
-		fmt.Printf("Error parsing core configuration: %v", err)
+		fmt.Printf("Error parsing core configuration: %v\n", err)
 		os.Exit(1)
 	}
 
 	var config CoreConfig
 	if err := json.Unmarshal(body, &config); err != nil {
-		fmt.Printf("Error parsing core configuration: %v", err)
+		fmt.Printf("Error parsing core configuration: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -156,25 +156,25 @@ func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 func fetchOpenIDConfig(configURL string) OpenIDConfig {
 	resp, err := http.Get(configURL)
 	if err != nil {
-		fmt.Printf("Error fetching OpenID configuration: %v", err)
+		fmt.Printf("Error fetching OpenID configuration: %v\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Printf("Core responded with error %v", resp.Status)
+		fmt.Printf("Core responded with error %v\n", resp.Status)
 		os.Exit(1)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading OpenID configuration response: %v", err)
+		fmt.Printf("Error reading OpenID configuration response: %v\n", err)
 		os.Exit(1)
 	}
 
 	var config OpenIDConfig
 	if err := json.Unmarshal(body, &config); err != nil {
-		fmt.Printf("Error parsing OpenID configuration: %v", err)
+		fmt.Printf("Error parsing OpenID configuration: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -212,7 +212,7 @@ func gitignoreAddIniFile() {
 	path := "./.gitignore"
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		fmt.Printf("Cannot open .gitignore file: %v", err)
+		fmt.Printf("Cannot open .gitignore file: %v\n", err)
 		os.Exit(1)
 	}
 	defer f.Close()
@@ -225,12 +225,12 @@ func gitignoreAddIniFile() {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("Error while reading .gitignore file contents: %v", err)
+		fmt.Printf("Error while reading .gitignore file contents: %v\n", err)
 		os.Exit(1)
 	}
 
 	if _, err = f.WriteString(utils.IniName); err != nil {
-		fmt.Printf("Error while adding entry to .gitignore file: %v", err)
+		fmt.Printf("Error while adding entry to .gitignore file: %v\n", err)
 		os.Exit(1)
 	}
 }

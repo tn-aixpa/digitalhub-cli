@@ -26,7 +26,7 @@ func LoadIni(createOnMissing bool) *ini.File {
 	cfg, err := ini.Load(getIniPath())
 	if err != nil {
 		if !createOnMissing {
-			fmt.Printf("Failed to read ini file: %v", err)
+			fmt.Printf("Failed to read ini file: %v\n", err)
 			os.Exit(1)
 		}
 		return ini.Empty()
@@ -38,7 +38,7 @@ func LoadIni(createOnMissing bool) *ini.File {
 func SaveIni(cfg *ini.File) {
 	err := cfg.SaveTo(getIniPath())
 	if err != nil {
-		fmt.Printf("Failed to update ini file: %v", err)
+		fmt.Printf("Failed to update ini file: %v\n", err)
 		os.Exit(1)
 	}
 }

@@ -30,11 +30,11 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	// Check if Python version is supported
 	versionOutput, err := exec.Command("python3", "--version").Output()
 	if err != nil {
-		fmt.Printf("python3 does not seem to be installed: %v", err)
+		fmt.Printf("python3 does not seem to be installed: %v\n", err)
 		os.Exit(1)
 	}
 	if !supportedPythonVersion(string(versionOutput)) {
-		fmt.Printf("Python version is not supported (must be 3.9.xx <= v <=3.12.xx): %v", string(versionOutput))
+		fmt.Printf("Python version is not supported (must be 3.9.xx <= v <=3.12.xx): %v\n", string(versionOutput))
 		os.Exit(1)
 	}
 
@@ -54,7 +54,7 @@ func initHandler(args []string, fs *flag.FlagSet) {
 		fmt.Printf("Newest patch version of digitalhub %v will be installed, continue? Y/n\n", apiVersionMinor)
 		userInput, err := buf.ReadBytes('\n')
 		if err != nil {
-			fmt.Printf("Error in reading user input: %v", err)
+			fmt.Printf("Error in reading user input: %v\n", err)
 			os.Exit(1)
 		} else {
 			yn := strings.TrimSpace(string(userInput))
@@ -75,12 +75,15 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	for _, pkg := range packageList() {
-		out, err := exec.Command("python3", "-m", "pip", "install", pkg+pipOption).Output()
+		cmd := exec.Command("python3", "-m", "pip", "install", pkg+pipOption)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
 		if err != nil {
-			fmt.Printf("Failed to execute command: %v; %v", err, string(out[:]))
+			fmt.Printf("Failed to execute command: %v; %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println(string(out))
+		fmt.Println("Installation complete.")
 	}
 }
 

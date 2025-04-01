@@ -41,19 +41,19 @@ func refreshHandler(args []string, fs *flag.FlagSet) {
 
 	resp, err := http.Post(openIDConfig.TokenEndpoint, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	if err != nil {
-		fmt.Printf("Error refreshing token: %v", err)
+		fmt.Printf("Error refreshing token: %v\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading response: %v", err)
+		fmt.Printf("Error reading response: %v\n", err)
 		os.Exit(1)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Token server error: %s\nBody: %s", resp.Status, string(body))
+		fmt.Printf("Token server error: %s\nBody: %s\n", resp.Status, string(body))
 		os.Exit(1)
 	}
 
@@ -64,5 +64,5 @@ func refreshHandler(args []string, fs *flag.FlagSet) {
 
 	section.ReflectFrom(&openIDConfig)
 	utils.SaveIni(cfg)
-	fmt.Printf("Token refreshed.")
+	fmt.Printf("Token refreshed.\n")
 }
