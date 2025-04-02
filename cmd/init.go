@@ -70,12 +70,14 @@ func initHandler(args []string, fs *flag.FlagSet) {
 
 	pipOption := "~=" + apiVersionMinor + ".0"
 	pre := fs.Lookup("pre").Value.String()
-	if pre == "true" {
-		pipOption = " --pre"
-	}
 
 	for _, pkg := range packageList() {
-		cmd := exec.Command("python3", "-m", "pip", "install", pkg+pipOption)
+		var cmd *exec.Cmd
+		if pre != "true" {
+			cmd = exec.Command("python3", "-m", "pip", "install", pkg+pipOption)
+		} else {
+			cmd = exec.Command("python3", "-m", "pip", "install", pkg+pipOption, "--pre")
+		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()

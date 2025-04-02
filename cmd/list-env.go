@@ -34,6 +34,7 @@ func listenvHandler(args []string, fs *flag.FlagSet) {
 
 	if sectionsString == "" {
 		fmt.Printf("No environments available.\n")
+		return
 	}
 	sectionsString = sectionsString[:len(sectionsString)-2]
 

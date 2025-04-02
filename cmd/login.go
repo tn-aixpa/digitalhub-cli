@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -13,11 +14,9 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"reflect"
 	"runtime"
 	"slices"
 	"strings"
-	"time"
 
 	"gopkg.in/ini.v1"
 
@@ -55,11 +54,17 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 
 	// Build and display the authorization URL
 	authURL := buildAuthURL(section, codeChallenge, generatedState)
-	fmt.Println("The following URL should open in your browser to authenticate:")
+	fmt.Println("The following URL will be opened in your browser to authenticate:")
 	fmt.Println(authURL)
+	buf := bufio.NewReader(os.Stdin)
+	fmt.Println("Press enter to continue...")
+	_, err := buf.ReadBytes('\n')
+	if err != nil {
+		fmt.Printf("Error during confirmation: %v\n", err)
+	}
 
 	// Open the URL in the default browser
-	err := openBrowser(authURL)
+	err = openBrowser(authURL)
 	if err != nil {
 		fmt.Printf("Error opening browser: %v\n", err)
 	}
@@ -142,28 +147,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 		json.Unmarshal(tokenResponse, &responseJson)
 		for k, v := range responseJson {
 			if !section.HasKey(k) && !slices.Contains([]string{"client_id", "token_type", "id_token"}, k) {
-				f := reflect.ValueOf(v)
-				var val string
-				switch f.Kind() {
-				case reflect.String:
-					val = f.String()
-				case reflect.Int, reflect.Int64:
-					val = fmt.Sprint(f.Int())
-				case reflect.Uint, reflect.Uint64:
-					val = fmt.Sprint(f.Uint())
-				case reflect.Float64:
-					val = fmt.Sprint(f.Float())
-				case reflect.Bool:
-					val = fmt.Sprint(f.Bool())
-				case reflect.TypeOf(time.Now()).Kind():
-					val = f.Interface().(time.Time).Format(time.RFC3339)
-				case reflect.Slice:
-					val = fmt.Sprint(f.Interface())
-				default:
-					val = ""
-				}
-
-				section.NewKey(k, val)
+				section.NewKey(k, utils.ReflectValue(v))
 			}
 		}
 		openIDConfig.AccessToken = responseJson["access_token"].(string)

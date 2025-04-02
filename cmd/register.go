@@ -12,7 +12,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
 	"gopkg.in/ini.v1"
 )
@@ -83,28 +82,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	for k, v := range res {
 		//add missing keys
 		if !sec.HasKey(k) {
-			f := reflect.ValueOf(v)
-			var val string
-			switch f.Kind() {
-			case reflect.String:
-				val = f.String()
-			case reflect.Int, reflect.Int64:
-				val = fmt.Sprint(f.Int())
-			case reflect.Uint, reflect.Uint64:
-				val = fmt.Sprint(f.Uint())
-			case reflect.Float64:
-				val = fmt.Sprint(f.Float())
-			case reflect.Bool:
-				val = fmt.Sprint(f.Bool())
-			case reflect.TypeOf(time.Now()).Kind():
-				val = f.Interface().(time.Time).Format(time.RFC3339)
-			case reflect.Slice:
-				val = fmt.Sprint(f.Interface())
-			default:
-				val = ""
-			}
-
-			sec.NewKey(k, val)
+			sec.NewKey(k, utils.ReflectValue(v))
 		}
 	}
 

@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"time"
 
 	"gopkg.in/ini.v1"
 )
@@ -40,5 +42,28 @@ func SaveIni(cfg *ini.File) {
 	if err != nil {
 		fmt.Printf("Failed to update ini file: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func ReflectValue(v interface{}) string {
+	f := reflect.ValueOf(v)
+
+	switch f.Kind() {
+	case reflect.String:
+		return f.String()
+	case reflect.Int, reflect.Int64:
+		return fmt.Sprint(f.Int())
+	case reflect.Uint, reflect.Uint64:
+		return fmt.Sprint(f.Uint())
+	case reflect.Float64:
+		return fmt.Sprint(f.Float())
+	case reflect.Bool:
+		return fmt.Sprint(f.Bool())
+	case reflect.TypeOf(time.Now()).Kind():
+		return f.Interface().(time.Time).Format(time.RFC3339)
+	case reflect.Slice:
+		return fmt.Sprint(f.Interface())
+	default:
+		return ""
 	}
 }
