@@ -3,7 +3,8 @@ package cmd
 import (
 	"dhcli/utils"
 	"flag"
-	"log"
+	"fmt"
+	"os"
 
 	"gopkg.in/ini.v1"
 )
@@ -25,7 +26,8 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 1 {
-		log.Fatalf("Error: Project is required.")
+		fmt.Println("Error: Project is required.")
+		os.Exit(1)
 	}
 	fs.Parse(args)
 	name := fs.Lookup("n").Value.String()
@@ -34,9 +36,11 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 	id := fs.Lookup("i").Value.String()
 
 	if entityType != "" && id == "" {
-		log.Fatalf("Entity type specified, but ID missing.")
+		fmt.Println("Entity type specified, but ID missing.")
+		os.Exit(1)
 	} else if entityType == "" && id != "" {
-		log.Fatalf("ID specified, but entity type missing.")
+		fmt.Println("ID specified, but entity type missing.")
+		os.Exit(1)
 	}
 
 	_, section := loadConfig([]string{name})
@@ -45,5 +49,5 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 	url := utils.BuildCoreUrl(section, method, project, entityType, id)
 	req := utils.PrepareRequest(method, url, nil, section.Key("access_token").String())
 	utils.DoRequest(req)
-	log.Printf("Deleted successfully.")
+	fmt.Println("Deleted successfully.")
 }

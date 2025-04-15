@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"reflect"
@@ -103,7 +102,8 @@ func PrepareRequest(method string, url string, data []byte, accessToken string) 
 	}
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		log.Fatalf("Failed to initialize request: %v", err)
+		fmt.Printf("Failed to initialize request: %v\n", err)
+		os.Exit(1)
 	}
 
 	if data != nil {
@@ -121,12 +121,14 @@ func DoRequest(req *http.Request) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("Error performing request: %v", err)
+		fmt.Printf("Error performing request: %v\n", err)
+		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Fatalf("Core responded with error %v", resp.Status)
+		fmt.Printf("Core responded with error %v\n", resp.Status)
+		os.Exit(1)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -136,7 +138,8 @@ func DoRequest(req *http.Request) ([]byte, error) {
 func DoRequestAndPrintResponse(req *http.Request) {
 	body, err := DoRequest(req)
 	if err != nil {
-		log.Fatalf("Error reading response: %v", err)
+		fmt.Printf("Error reading response: %v\n", err)
+		os.Exit(1)
 	}
 
 	fmt.Println(string(body))

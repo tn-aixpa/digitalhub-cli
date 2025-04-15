@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"os"
 
 	"gopkg.in/ini.v1"
 
@@ -33,10 +34,12 @@ func readHandler(args []string, fs *flag.FlagSet) {
 	id := fs.Lookup("i").Value.String()
 
 	if id != "" && (project == "" || entityType == "") {
-		log.Fatalf("ID specified, but project or entity type are missing.")
+		fmt.Println("ID specified, but project or entity type are missing.")
+		os.Exit(1)
 	}
 	if project == "" && entityType != "" {
-		log.Fatalf("Entity type specified, but project is missing.")
+		fmt.Println("Entity type specified, but project is missing.")
+		os.Exit(1)
 	}
 
 	_, section := loadConfig([]string{name})

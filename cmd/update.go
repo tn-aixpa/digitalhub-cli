@@ -3,7 +3,7 @@ package cmd
 import (
 	"dhcli/utils"
 	"flag"
-	"log"
+	"fmt"
 	"os"
 
 	"gopkg.in/ini.v1"
@@ -27,7 +27,8 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 2 {
-		log.Fatalf("Error: Project and path to YAML file are required.")
+		fmt.Println("Error: Project and path to YAML file are required.")
+		os.Exit(1)
 	}
 	fs.Parse(args)
 	name := fs.Lookup("n").Value.String()
@@ -37,15 +38,18 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 	yamlFilePath := fs.Args()[1]
 
 	if entityType != "" && id == "" {
-		log.Fatalf("Entity type specified, but ID missing.")
+		fmt.Println("Entity type specified, but ID missing.")
+		os.Exit(1)
 	} else if entityType == "" && id != "" {
-		log.Fatalf("ID specified, but entity type missing.")
+		fmt.Println("ID specified, but entity type missing.")
+		os.Exit(1)
 	}
 
 	_, section := loadConfig([]string{name})
 	yamlFile, err := os.ReadFile(yamlFilePath)
 	if err != nil {
-		log.Fatalf("Failed to read YAML file: %v", err)
+		fmt.Printf("Failed to read YAML file: %v\n", err)
+		os.Exit(1)
 	}
 	jsonContents, err := yaml.YAMLToJSON(yamlFile)
 
