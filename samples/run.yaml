@@ -1,0 +1,6 @@
+kind: python+run
+project: my-project
+spec:
+  task: python+build://my-project/9d249ef7762349e2a532e883ac4c378e
+  function: python://my-project/my-function:eab4f45fb93f49288780024ce17a344c
+  local_execution: false

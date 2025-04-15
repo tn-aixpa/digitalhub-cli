@@ -87,6 +87,92 @@ dhcli init example
 ```
 It will match core's minor version as indicated in the specified environment. If no environment is specified, it will use the default one.
 
+### `create`
+`create` will create an instance of the indicated resource on the platform. It takes the following parameters:
+
+- `-n environment` (Optional)
+- `-p project` (Optional)
+- `-e entity_type` (Optional)
+- `yaml_file_path`
+
+To create a project, the only mandatory parameter is the path to the yaml file containing its definition. To create other resources (artifacts, models, etc.), you will have to specify its type and the project it will belong to.
+
+Create a project:
+``` sh
+./dhcli create samples/project.yaml
+```
+
+Create an artifact:
+``` sh
+./dhcli create -p my-project -e artifacts samples/artifact.yaml
+```
+#### Resource types
+The type of a resource can be any of the following: ```artifacts```, ```dataitems```, ```models```, ```functions```, ```workflows```, ```runs```, ```secrets```.
+
+### `read`
+`read` returns a list of resources or the details of a specific resource. It takes the following parameters:
+
+- `-n environment` (Optional)
+- `-p project` (Optional)
+- `-e entity_type` (Optional)
+- `-i id` (Optional)
+
+List all projects:
+``` sh
+./dhcli read
+```
+
+Read a project's details:
+``` sh
+./dhcli read -p my-project
+```
+
+List all artifacts in a project:
+``` sh
+./dhcli read -p my-project -e artifacts
+```
+
+Read an artifact's details:
+``` sh
+./dhcli read -p my-project -e artifacts -i 88b5cd516e334c0bbea7352a2aeb3fb9
+```
+
+### `update`
+`update` will update a resource with a new definition. It takes the following parameters:
+
+- `-n environment` (Optional)
+- `-e entity_type` (Optional)
+- `-i id` (Optional)
+- `project`
+- `yaml_file_path`
+
+Update a project:
+``` sh
+./dhcli update my-project samples/project.yaml
+```
+
+Update an artifact:
+``` sh
+./dhcli update -e artifacts -i f884eb3fccca4ab0b701daaaf96358da my-project samples/artifact.yaml
+```
+
+### `delete`
+`delete` will delete a resource. It takes the following parameters:
+
+- `-n environment` (Optional)
+- `-e entity_type` (Optional)
+- `-i id` (Optional)
+- `project`
+
+Delete a project:
+``` sh
+./dhcli delete my-project
+```
+
+Delete an artifact:
+``` sh
+./dhcli delete -e artifacts -i my-artifact my-project
+```
 
 ## Build and publish
 

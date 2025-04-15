@@ -1,0 +1,11 @@
+kind: artifact
+name: my-artifact
+project: my-project
+metadata:
+  name: MyArtifact
+  description: This is a sample artifact.
+  project: my-project
+  labels:
+    - sample
+spec:
+  path: sample/path/

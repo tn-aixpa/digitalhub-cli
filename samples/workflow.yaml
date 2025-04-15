@@ -1,0 +1,13 @@
+kind: kfp
+name: my-workflow
+project: my-project
+metadata:
+  name: MyWorkflow
+  description: This is a sample workflow.
+  project: my-project
+  labels:
+    - sample
+spec:
+  source:
+    lang: python
+    source: /path

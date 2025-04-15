@@ -52,7 +52,6 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 		os.Exit(1)
 	}
 	fs.Parse(args)
-
 	name := fs.Lookup("n").Value.String()
 	endpoint := fs.Args()[0]
 	if !strings.HasSuffix(endpoint, "/") {
