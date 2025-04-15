@@ -72,6 +72,9 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 		}
 	}
 	section := cfg.Section(name)
+	for _, k := range section.Keys() {
+		section.DeleteKey(k.Name())
+	}
 	section.ReflectFrom(&coreConfig)
 
 	// Fetch OpenID configuration
