@@ -83,12 +83,8 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	section.ReflectFrom(&openIDConfig)
 
 	for k, v := range res {
-		//add or update keys
-		if !section.HasKey(k) {
-			section.NewKey(k, utils.ReflectValue(v))
-		} else {
-			section.Key(k).SetValue(utils.ReflectValue(v))
-		}
+		//add keys
+		section.NewKey(k, utils.ReflectValue(v))
 	}
 
 	//check for default env
