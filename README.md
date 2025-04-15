@@ -99,12 +99,12 @@ To create a project, the only mandatory parameter is the path to the yaml file c
 
 Create a project:
 ``` sh
-./dhcli create samples/project.yaml
+dhcli create samples/project.yaml
 ```
 
 Create an artifact:
 ``` sh
-./dhcli create -p my-project -e artifacts samples/artifact.yaml
+dhcli create -p my-project -e artifacts samples/artifact.yaml
 ```
 #### Resource types
 The type of a resource can be any of the following: ```artifacts```, ```dataitems```, ```models```, ```functions```, ```workflows```, ```runs```, ```secrets```.
@@ -119,22 +119,22 @@ The type of a resource can be any of the following: ```artifacts```, ```dataitem
 
 List all projects:
 ``` sh
-./dhcli read
+dhcli read
 ```
 
 Read a project's details:
 ``` sh
-./dhcli read -p my-project
+dhcli read -p my-project
 ```
 
 List all artifacts in a project:
 ``` sh
-./dhcli read -p my-project -e artifacts
+dhcli read -p my-project -e artifacts
 ```
 
 Read an artifact's details:
 ``` sh
-./dhcli read -p my-project -e artifacts -i 88b5cd516e334c0bbea7352a2aeb3fb9
+dhcli read -p my-project -e artifacts -i 88b5cd516e334c0bbea7352a2aeb3fb9
 ```
 
 ### `update`
@@ -148,12 +148,12 @@ Read an artifact's details:
 
 Update a project:
 ``` sh
-./dhcli update my-project samples/project.yaml
+dhcli update my-project samples/project.yaml
 ```
 
 Update an artifact:
 ``` sh
-./dhcli update -e artifacts -i f884eb3fccca4ab0b701daaaf96358da my-project samples/artifact.yaml
+dhcli update -e artifacts -i f884eb3fccca4ab0b701daaaf96358da my-project samples/artifact.yaml
 ```
 
 ### `delete`
@@ -166,12 +166,12 @@ Update an artifact:
 
 Delete a project:
 ``` sh
-./dhcli delete my-project
+dhcli delete my-project
 ```
 
 Delete an artifact:
 ``` sh
-./dhcli delete -e artifacts -i my-artifact my-project
+dhcli delete -e artifacts -i my-artifact my-project
 ```
 
 ## Build and publish
