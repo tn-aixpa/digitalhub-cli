@@ -229,7 +229,7 @@ func openBrowser(url string) error {
 
 	// For Windows
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/c", "start", url)
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
 	} else if runtime.GOOS == "darwin" { // For macOS
 		cmd = exec.Command("open", url)
 	} else { // For Linux and others
