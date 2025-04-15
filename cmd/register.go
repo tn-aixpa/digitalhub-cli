@@ -8,23 +8,22 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"reflect"
-	"time"
+	"strings"
 
 	"gopkg.in/ini.v1"
 )
 
 type OpenIDConfig struct {
-	AuthorizationEndpoint string `json:"authorization_endpoint" ini:"authorization_endpoint"`
-	TokenEndpoint         string `json:"token_endpoint" ini:"token_endpoint"`
-	Issuer                string `json:"issuer" ini:"issuer"`
-	ClientID              string `json:"dhcore_client_id" ini:"dhcore_client_id"`
-	Scope                 string `json:"scope" ini:"scope"`
-	AccessToken           string `json:"access_token" ini:"access_token"`
-	RefreshToken          string `json:"refresh_token" ini:"refresh_token"`
+	AuthorizationEndpoint string   `json:"authorization_endpoint" ini:"authorization_endpoint"`
+	TokenEndpoint         string   `json:"token_endpoint" ini:"token_endpoint"`
+	Issuer                string   `json:"issuer" ini:"issuer"`
+	ClientID              string   `json:"dhcore_client_id" ini:"dhcore_client_id"`
+	Scope                 []string `json:"scopes_supported" ini:"scopes_supported"`
+	AccessToken           string   `json:"access_token" ini:"access_token"`
+	RefreshToken          string   `json:"refresh_token" ini:"refresh_token"`
 }
 
 type CoreConfig struct {
@@ -37,7 +36,7 @@ type CoreConfig struct {
 func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "./dhcli register [-n <name>] <endpoint>",
+		Description: "dhcli register [-n <name>] <endpoint>",
 		SetupFlags: func(fs *flag.FlagSet) {
 			fs.String("n", "", "name")
 		},
@@ -49,94 +48,84 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 1 {
-		log.Fatalf("Error: Endpoint is required.\nUsage: ./dhcli register [-n <name>] <endpoint>")
+		fmt.Printf("Error: Endpoint is required.\nUsage: dhcli register [-n <name>] <endpoint>\n")
+		os.Exit(1)
 	}
 	fs.Parse(args)
 	name := fs.Lookup("n").Value.String()
 	endpoint := fs.Args()[0]
+	if !strings.HasSuffix(endpoint, "/") {
+		endpoint += "/"
+	}
 
 	// Read or initialize ini file
 	cfg := utils.LoadIni(true)
 
 	//collect to map+struct
-	res, coreConfig := fetchConfig(endpoint + "/.well-known/configuration")
+	res, coreConfig := fetchConfig(endpoint + ".well-known/configuration")
 	if name == "" || name == "null" {
 		name = coreConfig.Name
 		if name == "" {
-			log.Fatalf("Failed to register: environment name not specified and not defined in core's configuration.")
+			fmt.Printf("Failed to register: environment name not specified and not defined in core's configuration.\n")
+			os.Exit(1)
 		}
 	}
-	sec := cfg.Section(name)
-	sec.ReflectFrom(&coreConfig)
+	section := cfg.Section(name)
+	for _, k := range section.Keys() {
+		section.DeleteKey(k.Name())
+	}
+	section.ReflectFrom(&coreConfig)
 
 	// Fetch OpenID configuration
-	openIDConfig := fetchOpenIDConfig(endpoint + "/.well-known/openid-configuration")
+	openIDConfig := fetchOpenIDConfig(endpoint + ".well-known/openid-configuration")
 	openIDConfig.ClientID = coreConfig.ClientID
-	sec.ReflectFrom(&openIDConfig)
+	section.ReflectFrom(&openIDConfig)
 
 	for k, v := range res {
-		//add missing keys
-		if !sec.HasKey(k) {
-			f := reflect.ValueOf(v)
-			var val string
-			switch f.Kind() {
-			case reflect.String:
-				val = f.String()
-			case reflect.Int, reflect.Int64:
-				val = fmt.Sprint(f.Int())
-			case reflect.Uint, reflect.Uint64:
-				val = fmt.Sprint(f.Uint())
-			case reflect.Float64:
-				val = fmt.Sprint(f.Float())
-			case reflect.Bool:
-				val = fmt.Sprint(f.Bool())
-			case reflect.TypeOf(time.Now()).Kind():
-				val = f.Interface().(time.Time).Format(time.RFC3339)
-			case reflect.Slice:
-				val = fmt.Sprint(f.Interface())
-			default:
-				val = ""
-			}
-
-			sec.NewKey(k, val)
-		}
+		//add keys
+		section.NewKey(k, utils.ReflectValue(v))
 	}
 
 	//check for default env
-	dsec := cfg.Section("DEFAULT")
-	if !dsec.HasKey(utils.CurrentEnvironment) {
-		dsec.NewKey(utils.CurrentEnvironment, name)
+	defaultSection := cfg.Section("DEFAULT")
+	if !defaultSection.HasKey(utils.CurrentEnvironment) {
+		defaultSection.NewKey(utils.CurrentEnvironment, name)
 	}
 
 	// gitignoreAddIniFile()
 	utils.SaveIni(cfg)
-	log.Printf("'%v' registered.", name)
+	fmt.Printf("'%v' registered.\n", name)
 }
 
 func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 	resp, err := http.Get(configURL)
 	if err != nil {
-		log.Fatalf("Error fetching core configuration: %v", err)
+		fmt.Printf("Error fetching core configuration: %v\n", err)
+		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Fatalf("Core responded with error %v", resp.Status)
+		fmt.Printf("Core responded with error %v\n", resp.Status)
+		os.Exit(1)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading core configuration response: %v", err)
+		fmt.Printf("Error reading core configuration response: %v\n", err)
+		os.Exit(1)
 	}
 
 	var res map[string]interface{}
 	if err := json.Unmarshal(body, &res); err != nil {
-		log.Fatalf("Error parsing core configuration: %v", err)
+		fmt.Printf("Error parsing core configuration: %v\n", err)
+		os.Exit(1)
 	}
 
 	var config CoreConfig
 	if err := json.Unmarshal(body, &config); err != nil {
-		log.Fatalf("Error parsing core configuration: %v", err)
+		fmt.Printf("Error parsing core configuration: %v\n", err)
+		os.Exit(1)
 	}
 
 	return res, config
@@ -145,22 +134,26 @@ func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 func fetchOpenIDConfig(configURL string) OpenIDConfig {
 	resp, err := http.Get(configURL)
 	if err != nil {
-		log.Fatalf("Error fetching OpenID configuration: %v", err)
+		fmt.Printf("Error fetching OpenID configuration: %v\n", err)
+		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Fatalf("Core responded with error %v", resp.Status)
+		fmt.Printf("Core responded with error %v\n", resp.Status)
+		os.Exit(1)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading OpenID configuration response: %v", err)
+		fmt.Printf("Error reading OpenID configuration response: %v\n", err)
+		os.Exit(1)
 	}
 
 	var config OpenIDConfig
 	if err := json.Unmarshal(body, &config); err != nil {
-		log.Fatalf("Error parsing OpenID configuration: %v", err)
+		fmt.Printf("Error parsing OpenID configuration: %v\n", err)
+		os.Exit(1)
 	}
 
 	return config
@@ -197,7 +190,8 @@ func gitignoreAddIniFile() {
 	path := "./.gitignore"
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		log.Fatalf("Cannot open .gitignore file: %v", err)
+		fmt.Printf("Cannot open .gitignore file: %v\n", err)
+		os.Exit(1)
 	}
 	defer f.Close()
 
@@ -209,10 +203,12 @@ func gitignoreAddIniFile() {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatal("Error while reading .gitignore file contents: %v", err)
+		fmt.Printf("Error while reading .gitignore file contents: %v\n", err)
+		os.Exit(1)
 	}
 
 	if _, err = f.WriteString(utils.IniName); err != nil {
-		log.Fatalf("Error while adding entry to .gitignore file: %v", err)
+		fmt.Printf("Error while adding entry to .gitignore file: %v\n", err)
+		os.Exit(1)
 	}
 }

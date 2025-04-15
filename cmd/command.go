@@ -20,8 +20,8 @@ func RegisterCommand(cmd *Command) {
 }
 
 func ExecuteCommand(args []string) {
-	if len(args) < 1 {
-		fmt.Println("Usage: ./dhcli <command> [options]")
+	if len(args) < 1 || args[0] == "-h" || args[0] == "--help" {
+		fmt.Println("Usage: dhcli <command> [options]")
 		fmt.Println("\nAvailable commands:")
 		for _, cmd := range commands {
 			fmt.Printf("  %s: %s\n", cmd.Name, cmd.Description)
@@ -34,7 +34,7 @@ func ExecuteCommand(args []string) {
 	command, exists := commands[commandName]
 	if !exists {
 		fmt.Printf("Unknown command: %s\n", commandName)
-		fmt.Println("Use ./dhcli to see available commands.")
+		fmt.Println("Run dhcli to see available commands.")
 		os.Exit(1)
 	}
 

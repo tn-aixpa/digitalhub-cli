@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
+	"time"
 
 	"gopkg.in/ini.v1"
 )
@@ -30,7 +32,8 @@ func LoadIni(createOnMissing bool) *ini.File {
 	cfg, err := ini.Load(getIniPath())
 	if err != nil {
 		if !createOnMissing {
-			log.Fatalf("Failed to read ini file: %v", err)
+			fmt.Printf("Failed to read ini file: %v\n", err)
+			os.Exit(1)
 		}
 		return ini.Empty()
 	}
@@ -41,7 +44,31 @@ func LoadIni(createOnMissing bool) *ini.File {
 func SaveIni(cfg *ini.File) {
 	err := cfg.SaveTo(getIniPath())
 	if err != nil {
-		log.Fatalf("Failed to update ini file: %v", err)
+		fmt.Printf("Failed to update ini file: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func ReflectValue(v interface{}) string {
+	f := reflect.ValueOf(v)
+
+	switch f.Kind() {
+	case reflect.String:
+		return f.String()
+	case reflect.Int, reflect.Int64:
+		return fmt.Sprint(f.Int())
+	case reflect.Uint, reflect.Uint64:
+		return fmt.Sprint(f.Uint())
+	case reflect.Float64:
+		return fmt.Sprint(f.Float())
+	case reflect.Bool:
+		return fmt.Sprint(f.Bool())
+	case reflect.TypeOf(time.Now()).Kind():
+		return f.Interface().(time.Time).Format(time.RFC3339)
+	case reflect.Slice:
+		return fmt.Sprint(f.Interface())
+	default:
+		return ""
 	}
 }
 

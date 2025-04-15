@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -8,12 +9,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -29,7 +31,7 @@ var (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "login",
-		Description: "./dhcli login <environment>",
+		Description: "dhcli login <environment>",
 		SetupFlags:  func(fs *flag.FlagSet) {},
 		Handler:     loginHandler,
 	})
@@ -52,13 +54,19 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 
 	// Build and display the authorization URL
 	authURL := buildAuthURL(section, codeChallenge, generatedState)
-	fmt.Println("The following URL should open in your browser to authenticate:")
+	fmt.Println("The following URL will be opened in your browser to authenticate:")
 	fmt.Println(authURL)
+	buf := bufio.NewReader(os.Stdin)
+	fmt.Println("Press enter to continue...")
+	_, err := buf.ReadBytes('\n')
+	if err != nil {
+		fmt.Printf("Error during confirmation: %v\n", err)
+	}
 
 	// Open the URL in the default browser
-	err := openBrowser(authURL)
+	err = openBrowser(authURL)
 	if err != nil {
-		log.Printf("Error opening browser: %v", err)
+		fmt.Printf("Error opening browser: %v\n", err)
 	}
 
 	// Block the program to wait for user interaction
@@ -86,7 +94,8 @@ func generateRandomStringWithCharset(length int, charset string) string {
 	for i := range result {
 		randomByte := make([]byte, 1)
 		if _, err := rand.Read(randomByte); err != nil {
-			log.Fatalf("Error generating random string: %v", err)
+			fmt.Printf("Error generating random string: %v\n", err)
+			os.Exit(1)
 		}
 		result[i] = charset[randomByte[0]%byte(len(charset))]
 	}
@@ -103,7 +112,8 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		if state != generatedState {
 			http.Error(w, "Invalid state parameter", http.StatusBadRequest)
-			log.Fatalf("State mismatch: expected %s, got %s", generatedState, state)
+			fmt.Printf("State mismatch: expected %s, got %s\n", generatedState, state)
+			os.Exit(1)
 		}
 
 		if authCode == "" {
@@ -111,7 +121,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 			return
 		}
 
-		log.Printf("Authorization Code: %s, State: %s\n", authCode, state)
+		slog.Debug("Authorization code received correctly.", "Code", authCode, "State", state)
 
 		tokenResponse := exchangeAuthCode(openIDConfig.TokenEndpoint, openIDConfig.ClientID, codeVerifier, authCode)
 		if tokenResponse == nil {
@@ -121,15 +131,29 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		// Give feedback to user
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, "<h1>Authorization Successful</h1>")
-		fmt.Fprintf(w, `<h2>Token response is:</h2>`)
-		fmt.Fprintf(w, "<pre>%s</pre>", tokenResponse)
-		fmt.Fprintf(w, `<h2>You may now close this window.</h2>`)
+		fmt.Fprintf(w, "<div style=\"margin: 24px 0px 0px 24px;\">")
+		fmt.Fprintf(w, "<h1>Authorization successful</h1>")
+		fmt.Fprintf(w, `<h3>You may now close this window.</h3>`)
+		fmt.Fprintf(w, `<h3>Token response:</h3>`)
+		fmt.Fprintf(w, `<div>`)
+		fmt.Fprintf(w, "<button style=\"position: absolute;left: 774px;padding: 10px;opacity: 0.95;cursor: pointer;\" onclick=\"navigator.clipboard.writeText(document.getElementById('resp').innerHTML)\">Copy</button>")
+		fmt.Fprintf(w, "<div id=\"resp\" style=\"width: 800px;font-family: courier;overflow: auto;height: 320px;overflow-wrap: break-word;\">%s</div>", tokenResponse)
+		fmt.Fprintf(w, "</div>")
+		fmt.Fprintf(w, "</div>")
 
 		// Save response token
-		log.Println("Token Response:", string(tokenResponse))
+		slog.Debug("Token response received correctly.", "Response", string(tokenResponse))
 		var responseJson map[string]interface{}
 		json.Unmarshal(tokenResponse, &responseJson)
+		for k, v := range responseJson {
+			if !slices.Contains([]string{"client_id", "token_type", "id_token"}, k) {
+				if !section.HasKey(k) {
+					section.NewKey(k, utils.ReflectValue(v))
+				} else {
+					section.Key(k).SetValue(utils.ReflectValue(v))
+				}
+			}
+		}
 		openIDConfig.AccessToken = responseJson["access_token"].(string)
 		refreshToken, ok := responseJson["refresh_token"]
 		if ok {
@@ -138,6 +162,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		section.ReflectFrom(&openIDConfig)
 		utils.SaveIni(cfg)
+		fmt.Println("Login successful!")
 
 		// Close cli immediately in a goroutine, this keeps the browser open but releases the command line tool
 		go func() {
@@ -146,7 +171,8 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 	})
 	go func() {
 		if err := http.ListenAndServe(":4000", nil); err != nil {
-			log.Fatalf("Error starting server: %v", err)
+			slog.Error("Error starting server.", "Message", err)
+			os.Exit(1)
 		}
 	}()
 }
@@ -159,12 +185,13 @@ func buildAuthURL(section *ini.Section, codeChallenge, state string) string {
 	v.Set("response_type", "code")
 	v.Set("client_id", openIDConfig.ClientID)
 	v.Set("redirect_uri", redirectURI)
-	v.Set("scope", openIDConfig.Scope)
 	v.Set("code_challenge", codeChallenge)
 	v.Set("code_challenge_method", "S256")
 	v.Set("state", state)
 
-	return fmt.Sprintf("%s?%s", openIDConfig.AuthorizationEndpoint, v.Encode())
+	scopesString := strings.Join(openIDConfig.Scope[:], "%20")
+
+	return fmt.Sprintf("%s?%s&scope=%s", openIDConfig.AuthorizationEndpoint, v.Encode(), scopesString)
 }
 
 func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []byte {
@@ -177,19 +204,19 @@ func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []
 
 	resp, err := http.Post(tokenEndpoint, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	if err != nil {
-		log.Printf("Error exchanging auth code for token: %v", err)
+		slog.Error("Error exchanging auth code for token.", "Message", err)
 		return nil
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Error reading token response: %v", err)
+		slog.Error("Error reading token response.", "Message", err)
 		return nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("Token server error: %s\nBody: %s", resp.Status, string(body))
+		slog.Error("Token server error.", "Status", resp.Status, "Body", string(body))
 		return nil
 	}
 
@@ -221,7 +248,8 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 		if cfg.HasSection("DEFAULT") {
 			defaultSection, err := cfg.GetSection("DEFAULT")
 			if err != nil {
-				log.Fatalf("Error while reading default environment: %v", err)
+				fmt.Printf("Error while reading default environment: %v\n", err)
+				os.Exit(1)
 			}
 			if defaultSection.HasKey("current_environment") {
 				sectionName = defaultSection.Key("current_environment").String()
@@ -229,7 +257,8 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 		}
 
 		if sectionName == "" {
-			log.Fatalf("Error: environment was not passed and default environment is not specified in ini file.")
+			fmt.Println("Error: environment was not passed and default environment is not specified in ini file.")
+			os.Exit(1)
 		}
 	} else {
 		sectionName = args[0]
@@ -237,7 +266,8 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 
 	section, err := cfg.GetSection(sectionName)
 	if err != nil {
-		log.Fatalf("Failed to read section '%s': %v.", sectionName, err)
+		fmt.Printf("Failed to read section '%s': %v.\n", sectionName, err)
+		os.Exit(1)
 	}
 
 	return cfg, section
