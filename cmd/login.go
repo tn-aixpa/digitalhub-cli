@@ -146,8 +146,12 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 		var responseJson map[string]interface{}
 		json.Unmarshal(tokenResponse, &responseJson)
 		for k, v := range responseJson {
-			if !section.HasKey(k) && !slices.Contains([]string{"client_id", "token_type", "id_token"}, k) {
-				section.NewKey(k, utils.ReflectValue(v))
+			if !slices.Contains([]string{"client_id", "token_type", "id_token"}, k) {
+				if !section.HasKey(k) {
+					section.NewKey(k, utils.ReflectValue(v))
+				} else {
+					section.Key(k).SetValue(utils.ReflectValue(v))
+				}
 			}
 		}
 		openIDConfig.AccessToken = responseJson["access_token"].(string)

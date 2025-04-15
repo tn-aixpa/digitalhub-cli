@@ -71,25 +71,27 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 			os.Exit(1)
 		}
 	}
-	sec := cfg.Section(name)
-	sec.ReflectFrom(&coreConfig)
+	section := cfg.Section(name)
+	section.ReflectFrom(&coreConfig)
 
 	// Fetch OpenID configuration
 	openIDConfig := fetchOpenIDConfig(endpoint + ".well-known/openid-configuration")
 	openIDConfig.ClientID = coreConfig.ClientID
-	sec.ReflectFrom(&openIDConfig)
+	section.ReflectFrom(&openIDConfig)
 
 	for k, v := range res {
-		//add missing keys
-		if !sec.HasKey(k) {
-			sec.NewKey(k, utils.ReflectValue(v))
+		//add or update keys
+		if !section.HasKey(k) {
+			section.NewKey(k, utils.ReflectValue(v))
+		} else {
+			section.Key(k).SetValue(utils.ReflectValue(v))
 		}
 	}
 
 	//check for default env
-	dsec := cfg.Section("DEFAULT")
-	if !dsec.HasKey(utils.CurrentEnvironment) {
-		dsec.NewKey(utils.CurrentEnvironment, name)
+	defaultSection := cfg.Section("DEFAULT")
+	if !defaultSection.HasKey(utils.CurrentEnvironment) {
+		defaultSection.NewKey(utils.CurrentEnvironment, name)
 	}
 
 	// gitignoreAddIniFile()
