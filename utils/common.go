@@ -2,11 +2,13 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"gopkg.in/ini.v1"
@@ -71,28 +73,33 @@ func ReflectValue(v interface{}) string {
 	}
 }
 
-func BuildCoreUrl(section *ini.Section, method string, project string, entity string, id string) string {
-	base := section.Key("endpoint").String() + "/api/" + section.Key("api_version").String()
-	mid := "/projects"
+func BuildCoreUrl(section *ini.Section, project string, resource string, id string, params map[string]string) string {
+	base := section.Key("dhcore_endpoint").String() + "/api/" + section.Key("dhcore_api_version").String()
 	endpoint := ""
-	if project != "" {
-		endpoint = "/" + project
-		if entity != "" {
-			mid = "/-"
-			endpoint += "/" + entity
-			if id != "" {
-				if method != "DELETE" || entity == "secrets" || entity == "runs" {
-					endpoint += "/" + id
-				} else {
-					endpoint += "?name=" + id
-				}
+	paramsString := ""
+	if resource != "projects" && project != "" {
+		endpoint += "/-/" + project
+	}
+	endpoint += "/" + resource
+	if id != "" {
+		/*if method != "DELETE" || entity == "secrets" || entity == "runs" {
+			endpoint += "/" + id
+		} else {
+			endpoint += "?name=" + id
+		}*/
+		endpoint += "/" + id
+	}
+	if params != nil && len(params) > 0 {
+		paramsString = "?"
+		for key, val := range params {
+			if val != "" {
+				paramsString += key + "=" + val + "&"
 			}
-		} else if method == "DELETE" {
-			endpoint += "?cascade=true"
 		}
+		paramsString = paramsString[:len(paramsString)-1]
 	}
 
-	return base + mid + endpoint
+	return base + endpoint + paramsString
 }
 
 func PrepareRequest(method string, url string, data []byte, accessToken string) *http.Request {
@@ -135,12 +142,34 @@ func DoRequest(req *http.Request) ([]byte, error) {
 	return body, err
 }
 
-func DoRequestAndPrintResponse(req *http.Request) {
-	body, err := DoRequest(req)
+func TranslateFormat(format string) string {
+	lower := strings.ToLower(format)
+	if lower == "json" {
+		return "json"
+	} else if lower == "yaml" || lower == "yml" {
+		return "yaml"
+	}
+	return "short"
+}
+
+func TranslateEndpoint(resource string) string {
+	file, err := os.ReadFile("./config.json")
 	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
-		os.Exit(1)
+		fmt.Printf("Failed to read config file, some functionalities may not work: %v\n", err)
 	}
 
-	fmt.Println(string(body))
+	var config map[string]interface{}
+	err = json.Unmarshal(file, &config)
+	if err != nil {
+		fmt.Printf("Error unmarshalling config file, some functionalities may not work: %v\n", err)
+	}
+
+	if endpoints, ok := config["endpoints"]; ok {
+		endpointsMap := endpoints.(map[string]interface{})
+		if endpoint, ok := endpointsMap[resource]; ok {
+			return endpoint.(string)
+		}
+	}
+
+	return resource
 }

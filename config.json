@@ -1,0 +1,11 @@
+{
+    "endpoints": {
+        "artifact": "artifacts",
+        "dataitem": "dataitems",
+        "function": "functions",
+        "model": "models",
+        "project": "projects",
+        "run": "runs",
+        "workflow": "workflows"
+    }
+}

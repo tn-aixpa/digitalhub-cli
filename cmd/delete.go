@@ -12,11 +12,14 @@ import (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "delete",
-		Description: "dhcli delete [-n <name> -e <entity type> -i <id>] <project>",
+		Description: "dhcli delete [-e <environment> -p <project> -c] <resource> <id>",
 		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("n", "", "environment name")
-			fs.String("e", "", "entity type")
-			fs.String("i", "", "id")
+			// CLI-specific
+			fs.String("e", "", "environment")
+
+			// API
+			fs.String("p", "", "project")
+			fs.Bool("c", false, "cascade")
 		},
 		Handler: deleteHandler,
 	})
@@ -25,28 +28,30 @@ func init() {
 func deleteHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
-	if len(args) < 1 {
-		fmt.Println("Error: Project is required.")
-		os.Exit(1)
-	}
 	fs.Parse(args)
-	name := fs.Lookup("n").Value.String()
-	project := fs.Args()[0]
-	entityType := fs.Lookup("e").Value.String()
-	id := fs.Lookup("i").Value.String()
-
-	if entityType != "" && id == "" {
-		fmt.Println("Entity type specified, but ID missing.")
+	if len(fs.Args()) < 2 {
+		fmt.Println("Error: resource type and id are required.")
 		os.Exit(1)
-	} else if entityType == "" && id != "" {
-		fmt.Println("ID specified, but entity type missing.")
+	}
+	resource := utils.TranslateEndpoint(fs.Args()[0])
+	id := fs.Args()[1]
+
+	environment := fs.Lookup("e").Value.String()
+	cascade := fs.Lookup("c").Value.String()
+	project := fs.Lookup("p").Value.String()
+
+	if resource != "projects" && project == "" {
+		fmt.Println("Project is mandatory when performing this operation on resources other than projects.")
 		os.Exit(1)
 	}
 
-	_, section := loadConfig([]string{name})
+	_, section := loadConfig([]string{environment})
+
+	params := map[string]string{}
+	params["cascade"] = cascade
 
 	method := "DELETE"
-	url := utils.BuildCoreUrl(section, method, project, entityType, id)
+	url := utils.BuildCoreUrl(section, project, resource, id, params)
 	req := utils.PrepareRequest(method, url, nil, section.Key("access_token").String())
 	utils.DoRequest(req)
 	fmt.Println("Deleted successfully.")

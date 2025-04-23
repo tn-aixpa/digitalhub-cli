@@ -36,9 +36,9 @@ type CoreConfig struct {
 func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "dhcli register [-n <name>] <endpoint>",
+		Description: "dhcli register [-e <environment>] <endpoint>",
 		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("n", "", "name")
+			fs.String("e", "", "environment")
 		},
 		Handler: registerHandler,
 	})
@@ -48,11 +48,11 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
 	if len(args) < 1 {
-		fmt.Printf("Error: Endpoint is required.\nUsage: dhcli register [-n <name>] <endpoint>\n")
+		fmt.Println("Error: Endpoint is required.\nUsage: dhcli register [-n <name>] <endpoint>")
 		os.Exit(1)
 	}
 	fs.Parse(args)
-	name := fs.Lookup("n").Value.String()
+	environment := fs.Lookup("e").Value.String()
 	endpoint := fs.Args()[0]
 	if !strings.HasSuffix(endpoint, "/") {
 		endpoint += "/"
@@ -63,14 +63,18 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 
 	//collect to map+struct
 	res, coreConfig := fetchConfig(endpoint + ".well-known/configuration")
-	if name == "" || name == "null" {
-		name = coreConfig.Name
-		if name == "" {
-			fmt.Printf("Failed to register: environment name not specified and not defined in core's configuration.\n")
+	if environment == "" || environment == "null" {
+		environment = coreConfig.Name
+		if environment == "" {
+			fmt.Println("Failed to register: environment name not specified and not defined in core's configuration.")
 			os.Exit(1)
 		}
 	}
-	section := cfg.Section(name)
+
+	if cfg.HasSection(environment) {
+		fmt.Printf("Section '%v' already exists, will be overwritten.\n", environment)
+	}
+	section := cfg.Section(environment)
 	for _, k := range section.Keys() {
 		section.DeleteKey(k.Name())
 	}
@@ -89,12 +93,12 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	//check for default env
 	defaultSection := cfg.Section("DEFAULT")
 	if !defaultSection.HasKey(utils.CurrentEnvironment) {
-		defaultSection.NewKey(utils.CurrentEnvironment, name)
+		defaultSection.NewKey(utils.CurrentEnvironment, environment)
 	}
 
 	// gitignoreAddIniFile()
 	utils.SaveIni(cfg)
-	fmt.Printf("'%v' registered.\n", name)
+	fmt.Printf("'%v' registered.\n", environment)
 }
 
 func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
