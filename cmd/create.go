@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"dhcli/utils"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -13,11 +14,12 @@ import (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "create",
-		Description: "dhcli create [-n <name> -p <project> -e <entity type>] <yaml file>",
+		Description: "dhcli create [-e <environment> -p <project> -f <file> --reset-id] <resource>",
 		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("n", "", "environment name")
+			fs.String("e", "", "environment")
 			fs.String("p", "", "project")
-			fs.String("e", "", "entity type")
+			fs.String("f", "", "file")
+			fs.Bool("reset-id", false, "reset ID, ignoring the one in the file")
 		},
 		Handler: createHandler,
 	})
@@ -26,31 +28,69 @@ func init() {
 func createHandler(args []string, fs *flag.FlagSet) {
 	ini.DefaultHeader = true
 
-	if len(args) < 1 {
-		fmt.Println("Error: Path to YAML file is required.")
-		os.Exit(1)
-	}
 	fs.Parse(args)
-	name := fs.Lookup("n").Value.String()
-	project := fs.Lookup("p").Value.String()
-	entityType := fs.Lookup("e").Value.String()
-	yamlFilePath := fs.Args()[0]
+	if len(fs.Args()) < 1 {
+		fmt.Println("Error: resource type is required.")
+		os.Exit(1)
+	}
+	resource := utils.TranslateEndpoint(fs.Args()[0])
 
-	if (project != "" && entityType == "") || (project == "" && entityType != "") {
-		fmt.Println("Cannot create entity unless both project and type are specified.")
+	environment := fs.Lookup("e").Value.String()
+	project := fs.Lookup("p").Value.String()
+	filePath := fs.Lookup("f").Value.String()
+	resetId := fs.Lookup("reset-id").Value.String()
+
+	if filePath == "" {
+		fmt.Println("Input file not specified.")
 		os.Exit(1)
 	}
 
-	_, section := loadConfig([]string{name})
-	yamlFile, err := os.ReadFile(yamlFilePath)
+	if resource != "projects" && project == "" {
+		fmt.Println("Project is mandatory when performing this operation on resources other than projects.")
+		os.Exit(1)
+	}
+
+	// Read file
+	file, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Printf("Failed to read YAML file: %v\n", err)
 		os.Exit(1)
 	}
-	jsonContents, err := yaml.YAMLToJSON(yamlFile)
 
+	// Convert YAML to JSON
+	jsonBytes, err := yaml.YAMLToJSON(file)
+
+	// Convert to map
+	var jsonMap map[string]interface{}
+	err = json.Unmarshal(jsonBytes, &jsonMap)
+	if err != nil {
+		fmt.Printf("Failed to parse after JSON conversion: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Alter fields
+	delete(jsonMap, "user")
+
+	if resource != "projects" {
+		jsonMap["project"] = project
+	}
+
+	if resetId == "true" {
+		delete(jsonMap, "id")
+	}
+
+	// Marshal back
+	jsonBody, err := json.Marshal(jsonMap)
+	if err != nil {
+		fmt.Printf("Failed to marshal: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Request
+	_, section := loadConfig([]string{environment})
 	method := "POST"
-	url := utils.BuildCoreUrl(section, method, project, entityType, "")
-	req := utils.PrepareRequest(method, url, jsonContents, section.Key("access_token").String())
-	utils.DoRequestAndPrintResponse(req)
+	url := utils.BuildCoreUrl(section, project, resource, "", nil)
+	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())
+	utils.DoRequest(req)
+	fmt.Println("Created successfully.")
 }
