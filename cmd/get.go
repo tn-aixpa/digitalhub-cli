@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 
@@ -34,7 +35,7 @@ func getHandler(args []string, fs *flag.FlagSet) {
 
 	fs.Parse(args)
 	if len(fs.Args()) < 2 {
-		fmt.Println("Error: resource type and id are required.")
+		log.Println("Error: resource type and id are required.")
 		os.Exit(1)
 	}
 	resource := utils.TranslateEndpoint(fs.Args()[0])
@@ -45,7 +46,7 @@ func getHandler(args []string, fs *flag.FlagSet) {
 	project := fs.Lookup("p").Value.String()
 
 	if resource != "projects" && project == "" {
-		fmt.Println("Project is mandatory when performing this operation on resources other than projects.")
+		log.Println("Project is mandatory when performing this operation on resources other than projects.")
 		os.Exit(1)
 	}
 
@@ -57,7 +58,7 @@ func getHandler(args []string, fs *flag.FlagSet) {
 
 	body, err := utils.DoRequest(req)
 	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
+		log.Printf("Error reading response: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -99,7 +100,7 @@ func printJsonGet(src []byte) {
 	var j bytes.Buffer
 	err := json.Indent(&j, src, "", "    ")
 	if err != nil {
-		fmt.Printf("Error parsing JSON: %v\n", err)
+		log.Printf("Error parsing JSON: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Println(string(j.Bytes()))
@@ -108,7 +109,7 @@ func printJsonGet(src []byte) {
 func printYamlGet(src []byte) {
 	y, err := yaml.JSONToYAML(src)
 	if err != nil {
-		fmt.Printf("Error converting JSON into YAML: %v\n", err)
+		log.Printf("Error converting JSON into YAML: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Println(string(y))

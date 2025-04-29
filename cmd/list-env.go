@@ -4,6 +4,7 @@ import (
 	"dhcli/utils"
 	"flag"
 	"fmt"
+	"log"
 
 	"gopkg.in/ini.v1"
 )
@@ -33,10 +34,11 @@ func listenvHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	if sectionsString == "" {
-		fmt.Printf("No environments available.\n")
+		log.Println("No environments available.")
 		return
 	}
 	sectionsString = sectionsString[:len(sectionsString)-2]
 
-	fmt.Printf("Available environments: %v\n", sectionsString)
+	log.Println("Available environments:")
+	fmt.Printf("%v\n", sectionsString)
 }

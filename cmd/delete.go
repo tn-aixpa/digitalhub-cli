@@ -3,7 +3,7 @@ package cmd
 import (
 	"dhcli/utils"
 	"flag"
-	"fmt"
+	"log"
 	"os"
 
 	"gopkg.in/ini.v1"
@@ -30,7 +30,7 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 
 	fs.Parse(args)
 	if len(fs.Args()) < 2 {
-		fmt.Println("Error: resource type and id are required.")
+		log.Println("Error: resource type and id are required.")
 		os.Exit(1)
 	}
 	resource := utils.TranslateEndpoint(fs.Args()[0])
@@ -41,7 +41,7 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 	project := fs.Lookup("p").Value.String()
 
 	if resource != "projects" && project == "" {
-		fmt.Println("Project is mandatory when performing this operation on resources other than projects.")
+		log.Println("Project is mandatory when performing this operation on resources other than projects.")
 		os.Exit(1)
 	}
 
@@ -54,5 +54,5 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 	url := utils.BuildCoreUrl(section, project, resource, id, params)
 	req := utils.PrepareRequest(method, url, nil, section.Key("access_token").String())
 	utils.DoRequest(req)
-	fmt.Println("Deleted successfully.")
+	log.Println("Deleted successfully.")
 }

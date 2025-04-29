@@ -3,8 +3,10 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"reflect"
@@ -33,7 +35,7 @@ func LoadIni(createOnMissing bool) *ini.File {
 	cfg, err := ini.Load(getIniPath())
 	if err != nil {
 		if !createOnMissing {
-			fmt.Printf("Failed to read ini file: %v\n", err)
+			log.Printf("Failed to read ini file: %v\n", err)
 			os.Exit(1)
 		}
 		return ini.Empty()
@@ -45,7 +47,7 @@ func LoadIni(createOnMissing bool) *ini.File {
 func SaveIni(cfg *ini.File) {
 	err := cfg.SaveTo(getIniPath())
 	if err != nil {
-		fmt.Printf("Failed to update ini file: %v\n", err)
+		log.Printf("Failed to update ini file: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -82,11 +84,6 @@ func BuildCoreUrl(section *ini.Section, project string, resource string, id stri
 	}
 	endpoint += "/" + resource
 	if id != "" {
-		/*if method != "DELETE" || entity == "secrets" || entity == "runs" {
-			endpoint += "/" + id
-		} else {
-			endpoint += "?name=" + id
-		}*/
 		endpoint += "/" + id
 	}
 	if params != nil && len(params) > 0 {
@@ -109,7 +106,7 @@ func PrepareRequest(method string, url string, data []byte, accessToken string) 
 	}
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		fmt.Printf("Failed to initialize request: %v\n", err)
+		log.Printf("Failed to initialize request: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -128,13 +125,13 @@ func DoRequest(req *http.Request) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("Error performing request: %v\n", err)
+		log.Printf("Error performing request: %v\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Printf("Core responded with error %v\n", resp.Status)
+		log.Printf("Core responded with error %v\n", resp.Status)
 		os.Exit(1)
 	}
 
@@ -152,24 +149,45 @@ func TranslateFormat(format string) string {
 	return "short"
 }
 
-func TranslateEndpoint(resource string) string {
+func loadConfig() map[string]interface{} {
 	file, err := os.ReadFile("./config.json")
 	if err != nil {
-		fmt.Printf("Failed to read config file, some functionalities may not work: %v\n", err)
+		log.Printf("Failed to read config file, some functionalities may not work: %v\n", err)
+		return nil
 	}
 
 	var config map[string]interface{}
 	err = json.Unmarshal(file, &config)
 	if err != nil {
-		fmt.Printf("Error unmarshalling config file, some functionalities may not work: %v\n", err)
+		log.Printf("Error unmarshalling config file, some functionalities may not work: %v\n", err)
+		return nil
 	}
 
-	if endpoints, ok := config["endpoints"]; ok {
-		endpointsMap := endpoints.(map[string]interface{})
-		if endpoint, ok := endpointsMap[resource]; ok {
-			return endpoint.(string)
+	return config
+}
+
+func TranslateEndpoint(resource string) string {
+	config := loadConfig()
+
+	if config != nil {
+		if endpoints, ok := config["endpoints"]; ok {
+			endpointsMap := endpoints.(map[string]interface{})
+			if endpoint, ok := endpointsMap[resource]; ok {
+				return endpoint.(string)
+			}
 		}
 	}
 
 	return resource
+}
+
+func FlagString(fs *flag.FlagSet, short string, full string) string {
+	value := ""
+	if short != "" {
+		value = fs.Lookup(short).Value.String()
+	}
+	if value == "" && full != "" {
+		value = fs.Lookup(full).Value.String()
+	}
+	return value
 }

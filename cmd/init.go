@@ -3,7 +3,7 @@ package cmd
 import (
 	"bufio"
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -30,11 +30,11 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	// Check if Python version is supported
 	versionOutput, err := exec.Command("python3", "--version").Output()
 	if err != nil {
-		fmt.Printf("python3 does not seem to be installed: %v\n", err)
+		log.Printf("python3 does not seem to be installed: %v\n", err)
 		os.Exit(1)
 	}
 	if !supportedPythonVersion(string(versionOutput)) {
-		fmt.Printf("Python version is not supported (must be 3.9.xx <= v <=3.12.xx): %v\n", string(versionOutput))
+		log.Printf("Python version is not supported (must be 3.9.xx <= v <=3.12.xx): %v\n", string(versionOutput))
 		os.Exit(1)
 	}
 
@@ -51,20 +51,20 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	// Ask for confirmation
 	for {
 		buf := bufio.NewReader(os.Stdin)
-		fmt.Printf("Newest patch version of digitalhub %v will be installed, continue? Y/n\n", apiVersionMinor)
+		log.Printf("Newest patch version of digitalhub %v will be installed, continue? Y/n\n", apiVersionMinor)
 		userInput, err := buf.ReadBytes('\n')
 		if err != nil {
-			fmt.Printf("Error in reading user input: %v\n", err)
+			log.Printf("Error in reading user input: %v\n", err)
 			os.Exit(1)
 		} else {
 			yn := strings.TrimSpace(string(userInput))
 			if strings.ToLower(yn) == "y" || yn == "" {
 				break
 			} else if strings.ToLower(yn) == "n" {
-				fmt.Println("Cancelling installation.")
+				log.Println("Cancelling installation.")
 				return
 			}
-			fmt.Println("Invalid input, must be y or n")
+			log.Println("Invalid input, must be y or n")
 		}
 	}
 
@@ -82,10 +82,10 @@ func initHandler(args []string, fs *flag.FlagSet) {
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		if err != nil {
-			fmt.Printf("Failed to execute command: %v; %v\n", err)
+			log.Printf("Failed to execute command: %v; %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("Installation complete.")
+		log.Println("Installation complete.")
 	}
 }
 

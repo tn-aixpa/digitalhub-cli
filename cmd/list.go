@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"slices"
@@ -22,6 +23,7 @@ func init() {
 			// CLI-specific
 			fs.String("e", "", "environment")
 			fs.String("o", "", "output format")
+			fs.String("output", "", "output format")
 
 			// API
 			fs.String("p", "", "project")
@@ -38,17 +40,17 @@ func listHandler(args []string, fs *flag.FlagSet) {
 
 	fs.Parse(args)
 	if len(fs.Args()) < 1 {
-		fmt.Println("Error: resource type is required.")
+		log.Println("Error: resource type is required.")
 		os.Exit(1)
 	}
 	resource := utils.TranslateEndpoint(fs.Args()[0])
 
 	environment := fs.Lookup("e").Value.String()
-	outputFormat := fs.Lookup("o").Value.String()
+	outputFormat := utils.FlagString(fs, "o", "output")
 	project := fs.Lookup("p").Value.String()
 
 	if resource != "projects" && project == "" {
-		fmt.Println("Project is mandatory when performing this operation on resources other than projects.")
+		log.Println("Project is mandatory when performing this operation on resources other than projects.")
 		os.Exit(1)
 	}
 
@@ -66,7 +68,7 @@ func listHandler(args []string, fs *flag.FlagSet) {
 
 	body, err := utils.DoRequest(req)
 	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
+		log.Printf("Error reading response: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -89,7 +91,7 @@ func listHandler(args []string, fs *flag.FlagSet) {
 
 		body, err = utils.DoRequest(req)
 		if err != nil {
-			fmt.Printf("Error reading response: %v\n", err)
+			log.Printf("Error reading response: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -156,7 +158,7 @@ func printShortLineList(rName string, rId string, rKind string, rUpdated string,
 func printJsonList(src []interface{}) {
 	j, err := json.MarshalIndent(src, "", "    ")
 	if err != nil {
-		fmt.Printf("Error while parsing resource array: %v", err)
+		log.Printf("Error while parsing resource array: %v", err)
 		os.Exit(1)
 	}
 	fmt.Printf("%v\n", string(j))
@@ -165,7 +167,7 @@ func printJsonList(src []interface{}) {
 func printYamlList(src []interface{}) {
 	y, err := yaml.Marshal(src)
 	if err != nil {
-		fmt.Printf("Error while parsing resource array: %v", err)
+		log.Printf("Error while parsing resource array: %v", err)
 		os.Exit(1)
 	}
 	fmt.Printf("%v\n", string(y))

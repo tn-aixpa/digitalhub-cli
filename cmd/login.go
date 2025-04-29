@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -54,19 +55,19 @@ func loginHandler(args []string, fs *flag.FlagSet) {
 
 	// Build and display the authorization URL
 	authURL := buildAuthURL(section, codeChallenge, generatedState)
-	fmt.Println("The following URL will be opened in your browser to authenticate:")
-	fmt.Println(authURL)
+	log.Println("The following URL will be opened in your browser to authenticate:")
+	log.Println(authURL)
 	buf := bufio.NewReader(os.Stdin)
-	fmt.Println("Press enter to continue...")
+	log.Println("Press enter to continue...")
 	_, err := buf.ReadBytes('\n')
 	if err != nil {
-		fmt.Printf("Error during confirmation: %v\n", err)
+		log.Printf("Error during confirmation: %v\n", err)
 	}
 
 	// Open the URL in the default browser
 	err = openBrowser(authURL)
 	if err != nil {
-		fmt.Printf("Error opening browser: %v\n", err)
+		log.Printf("Error opening browser: %v\n", err)
 	}
 
 	// Block the program to wait for user interaction
@@ -94,7 +95,7 @@ func generateRandomStringWithCharset(length int, charset string) string {
 	for i := range result {
 		randomByte := make([]byte, 1)
 		if _, err := rand.Read(randomByte); err != nil {
-			fmt.Printf("Error generating random string: %v\n", err)
+			log.Printf("Error generating random string: %v\n", err)
 			os.Exit(1)
 		}
 		result[i] = charset[randomByte[0]%byte(len(charset))]
@@ -112,7 +113,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		if state != generatedState {
 			http.Error(w, "Invalid state parameter", http.StatusBadRequest)
-			fmt.Printf("State mismatch: expected %s, got %s\n", generatedState, state)
+			log.Printf("State mismatch: expected %s, got %s\n", generatedState, state)
 			os.Exit(1)
 		}
 
@@ -162,7 +163,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		section.ReflectFrom(&openIDConfig)
 		utils.SaveIni(cfg)
-		fmt.Println("Login successful!")
+		log.Println("Login successful!")
 
 		// Close cli immediately in a goroutine, this keeps the browser open but releases the command line tool
 		go func() {
@@ -248,7 +249,7 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 		if cfg.HasSection("DEFAULT") {
 			defaultSection, err := cfg.GetSection("DEFAULT")
 			if err != nil {
-				fmt.Printf("Error while reading default environment: %v\n", err)
+				log.Printf("Error while reading default environment: %v\n", err)
 				os.Exit(1)
 			}
 			if defaultSection.HasKey("current_environment") {
@@ -257,7 +258,7 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 		}
 
 		if sectionName == "" {
-			fmt.Println("Error: environment was not passed and default environment is not specified in ini file.")
+			log.Println("Error: environment was not passed and default environment is not specified in ini file.")
 			os.Exit(1)
 		}
 	} else {
@@ -266,7 +267,7 @@ func loadConfig(args []string) (*ini.File, *ini.Section) {
 
 	section, err := cfg.GetSection(sectionName)
 	if err != nil {
-		fmt.Printf("Failed to read section '%s': %v.\n", sectionName, err)
+		log.Printf("Failed to read section '%s': %v.\n", sectionName, err)
 		os.Exit(1)
 	}
 
