@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 
-	"gopkg.in/ini.v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -25,8 +24,6 @@ func init() {
 }
 
 func updateHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	fs.Parse(args)
 	if len(fs.Args()) < 2 {
 		log.Println("Error: resource type and id are required.")

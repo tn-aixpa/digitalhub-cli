@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-
-	"gopkg.in/ini.v1"
 )
 
 func init() {
@@ -21,8 +19,6 @@ func init() {
 }
 
 func listenvHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	cfg := utils.LoadIni(true)
 	sections := cfg.SectionStrings()
 	sectionsString := ""

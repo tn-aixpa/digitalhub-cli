@@ -39,8 +39,6 @@ func init() {
 }
 
 func loginHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	// Read config from ini file
 	cfg, section := loadConfig(args)
 

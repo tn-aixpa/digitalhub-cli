@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 
-	"gopkg.in/ini.v1"
-
 	"dhcli/utils"
 )
 
@@ -22,8 +20,6 @@ func init() {
 }
 
 func removeHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	if len(args) < 1 {
 		log.Printf("Error: Environment is a required positional argument.\nUsage: dhcli remove <environment>\n")
 		os.Exit(1)

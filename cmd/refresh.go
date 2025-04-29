@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/ini.v1"
-
 	"dhcli/utils"
 )
 
@@ -27,8 +25,6 @@ func init() {
 }
 
 func refreshHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	// Read config from ini file
 	cfg, section := loadConfig(args)
 	openIDConfig := new(OpenIDConfig)

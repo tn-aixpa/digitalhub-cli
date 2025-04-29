@@ -12,8 +12,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-
-	"gopkg.in/ini.v1"
 )
 
 type OpenIDConfig struct {
@@ -45,8 +43,6 @@ func init() {
 }
 
 func registerHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	if len(args) < 1 {
 		log.Println("Error: Endpoint is required.\nUsage: dhcli register [-e <environment name>] <endpoint>")
 		os.Exit(1)

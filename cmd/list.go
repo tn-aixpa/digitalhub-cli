@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strconv"
 
-	"gopkg.in/ini.v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -23,7 +22,6 @@ func init() {
 			// CLI-specific
 			fs.String("e", "", "environment")
 			fs.String("o", "", "output format")
-			fs.String("output", "", "output format")
 
 			// API
 			fs.String("p", "", "project")
@@ -36,8 +34,6 @@ func init() {
 }
 
 func listHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	fs.Parse(args)
 	if len(fs.Args()) < 1 {
 		log.Println("Error: resource type is required.")
@@ -46,7 +42,7 @@ func listHandler(args []string, fs *flag.FlagSet) {
 	resource := utils.TranslateEndpoint(fs.Args()[0])
 
 	environment := fs.Lookup("e").Value.String()
-	outputFormat := utils.FlagString(fs, "o", "output")
+	outputFormat := fs.Lookup("o").Value.String()
 	project := fs.Lookup("p").Value.String()
 
 	if resource != "projects" && project == "" {

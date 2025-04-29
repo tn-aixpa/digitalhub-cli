@@ -3,7 +3,6 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -170,24 +169,13 @@ func TranslateEndpoint(resource string) string {
 	config := loadConfig()
 
 	if config != nil {
-		if endpoints, ok := config["endpoints"]; ok {
+		if endpoints, ok := config["endpoints"]; ok && reflect.ValueOf(endpoints).Kind() == reflect.Map {
 			endpointsMap := endpoints.(map[string]interface{})
-			if endpoint, ok := endpointsMap[resource]; ok {
+			if endpoint, ok := endpointsMap[resource]; ok && reflect.ValueOf(endpoint).Kind() == reflect.String {
 				return endpoint.(string)
 			}
 		}
 	}
 
 	return resource
-}
-
-func FlagString(fs *flag.FlagSet, short string, full string) string {
-	value := ""
-	if short != "" {
-		value = fs.Lookup(short).Value.String()
-	}
-	if value == "" && full != "" {
-		value = fs.Lookup(full).Value.String()
-	}
-	return value
 }

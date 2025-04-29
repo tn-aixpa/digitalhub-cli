@@ -8,8 +8,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-
-	"gopkg.in/ini.v1"
 )
 
 func init() {
@@ -24,7 +22,6 @@ func init() {
 }
 
 func initHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
 	fs.Parse(args)
 
 	// Check if Python version is supported
