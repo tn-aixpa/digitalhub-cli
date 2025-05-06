@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -178,4 +179,25 @@ func TranslateEndpoint(resource string) string {
 	}
 
 	return resource
+}
+
+func WaitForConfirmation(msg string) {
+	for {
+		buf := bufio.NewReader(os.Stdin)
+		log.Printf(msg)
+		userInput, err := buf.ReadBytes('\n')
+		if err != nil {
+			log.Printf("Error in reading user input: %v\n", err)
+			os.Exit(1)
+		} else {
+			yn := strings.TrimSpace(string(userInput))
+			if strings.ToLower(yn) == "y" || yn == "" {
+				break
+			} else if strings.ToLower(yn) == "n" {
+				log.Println("Cancelling.")
+				os.Exit(0)
+			}
+			log.Println("Invalid input, must be y or n")
+		}
+	}
 }

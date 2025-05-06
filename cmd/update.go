@@ -13,7 +13,7 @@ import (
 func init() {
 	RegisterCommand(&Command{
 		Name:        "update",
-		Description: "dhcli update [-e <environment> -p <project> -f <file>] <resource> <id>",
+		Description: "dhcli update [-e <environment> -p <project>] -f <file> <resource> <id>",
 		SetupFlags: func(fs *flag.FlagSet) {
 			fs.String("e", "", "environment")
 			fs.String("p", "", "project")

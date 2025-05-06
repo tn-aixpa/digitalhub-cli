@@ -52,6 +52,9 @@ func listHandler(args []string, fs *flag.FlagSet) {
 
 	params := map[string]string{}
 	params["name"] = fs.Lookup("n").Value.String()
+	if params["name"] != "" {
+		params["versions"] = "all"
+	}
 	params["kind"] = fs.Lookup("k").Value.String()
 	params["state"] = fs.Lookup("s").Value.String()
 	params["size"] = "200"
@@ -148,7 +151,7 @@ func printShortList(resources []interface{}) {
 }
 
 func printShortLineList(rName string, rId string, rKind string, rUpdated string, rState string, rLabels string) {
-	fmt.Printf("%-24s%-32s%-24s%-30s%-12s%-32s\n", rName, rId, rKind, rUpdated, rState, rLabels)
+	fmt.Printf("%-24s%-36s%-24s%-30s%-12s%-32s\n", rName, rId, rKind, rUpdated, rState, rLabels)
 }
 
 func printJsonList(src []interface{}) {
