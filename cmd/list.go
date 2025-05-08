@@ -108,12 +108,13 @@ func listHandler(args []string, fs *flag.FlagSet) {
 	} else if format == "json" {
 		printJsonList(elements)
 	} else if format == "yaml" {
+		fmt.Printf("# Document generated with: %v\n", args)
 		printYamlList(elements)
 	}
 }
 
 func printShortList(resources []interface{}) {
-	printShortLineList("Name", "ID", "Kind", "Updated", "State", "Labels")
+	printShortLineList("NAME", "ID", "KIND", "UPDATED", "STATE", "LABELS")
 	fmt.Println("")
 
 	for _, r := range resources {
@@ -151,7 +152,7 @@ func printShortList(resources []interface{}) {
 }
 
 func printShortLineList(rName string, rId string, rKind string, rUpdated string, rState string, rLabels string) {
-	fmt.Printf("%-24s%-36s%-24s%-30s%-12s%-32s\n", rName, rId, rKind, rUpdated, rState, rLabels)
+	fmt.Printf("%-24s%-36s%-24s%-30s%-12s%s\n", rName, rId, rKind, rUpdated, rState, rLabels)
 }
 
 func printJsonList(src []interface{}) {
