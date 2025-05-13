@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strings"
 
 	"sigs.k8s.io/yaml"
 )
@@ -44,7 +45,7 @@ func getHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	environment := fs.Lookup("e").Value.String()
-	outputFormat := fs.Lookup("o").Value.String()
+	format := utils.TranslateFormat(fs.Lookup("o").Value.String())
 	project := fs.Lookup("p").Value.String()
 	name := fs.Lookup("n").Value.String()
 
@@ -77,14 +78,7 @@ func getHandler(args []string, fs *flag.FlagSet) {
 		os.Exit(1)
 	}
 
-	format := utils.TranslateFormat(outputFormat)
-	if format == "short" {
-		printShortGet(body)
-	} else if format == "json" {
-		printJsonGet(id, body)
-	} else if format == "yaml" {
-		printYamlGet(id, body)
-	}
+	printGet(format, id, body, args)
 }
 
 func getFirstIfList(m map[string]interface{}) map[string]interface{} {
@@ -99,6 +93,17 @@ func getFirstIfList(m map[string]interface{}) map[string]interface{} {
 	}
 
 	return m
+}
+
+func printGet(format string, id string, body []byte, args []string) {
+	if format == "short" {
+		printShortGet(body)
+	} else if format == "json" {
+		printJsonGet(id, body)
+	} else if format == "yaml" {
+		fmt.Printf("# Document generated with parameters: %v\n", strings.Join(args, " "))
+		printYamlGet(id, body)
+	}
 }
 
 func printShortGet(src []byte) {
