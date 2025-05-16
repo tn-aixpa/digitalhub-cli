@@ -42,8 +42,7 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	}
 	_, section := loadConfig(loadArgs)
 
-	apiVersion := section.Key("dhcore_version").String()
-	apiVersionMinor := apiVersion[:strings.LastIndex(apiVersion, ".")]
+	apiVersionMinor := getVersionMinor(section.Key("dhcore_version").String())
 
 	// Ask for confirmation
 	for {
@@ -110,4 +109,22 @@ func packageList() []string {
 		"digitalhub[full]",
 		"digitalhub-runtime-python",
 	}
+}
+
+func getVersionMinor(version string) string {
+	if version == "" {
+		log.Println("Failed to read version: dhcore_version is missing or blank")
+		os.Exit(1)
+	}
+
+	dots := strings.Count(version, ".")
+
+	if dots == 2 {
+		return version[:strings.LastIndex(version, ".")]
+	}
+	if dots > 2 {
+		log.Printf("WARNING: The value of dhcore_version has an unexpected format. Expected: MAJOR.MINOR[.PATCH], found: %v\n", version)
+	}
+
+	return version
 }
