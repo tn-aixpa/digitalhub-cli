@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
-	"strings"
 
 	"sigs.k8s.io/yaml"
 )
@@ -59,9 +58,9 @@ func listHandler(args []string, fs *flag.FlagSet) {
 	params["kind"] = fs.Lookup("k").Value.String()
 	params["state"] = fs.Lookup("s").Value.String()
 	params["size"] = "200"
-	params["sort"] = determineSort(format)
+	params["sort"] = "updated,asc"
 
-	_, section := loadConfig([]string{environment})
+	_, section := loadIniConfig([]string{environment})
 
 	method := "GET"
 	url := utils.BuildCoreUrl(section, project, resource, "", params)
@@ -104,24 +103,12 @@ func listHandler(args []string, fs *flag.FlagSet) {
 		pageNumber = int(reflect.ValueOf(pageableMap["pageNumber"]).Float())
 	}
 
-	printList(format, elements, args)
-}
-
-func determineSort(format string) string {
-	sort := "updated,"
-	if format == "short" {
-		return sort + "asc"
-	}
-	return sort + "desc"
-}
-
-func printList(format string, elements []interface{}, args []string) {
 	if format == "short" {
 		printShortList(elements)
 	} else if format == "json" {
 		printJsonList(elements)
 	} else if format == "yaml" {
-		fmt.Printf("# Document generated with parameters: %v\n", strings.Join(args, " "))
+		utils.PrintCommentForYaml(section, args)
 		printYamlList(elements)
 	}
 }

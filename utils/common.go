@@ -19,6 +19,8 @@ import (
 const (
 	IniName            = ".dhcore.ini"
 	CurrentEnvironment = "current_environment"
+	ExpectedApiLevel   = "11"
+	configFile         = "config.json"
 )
 
 func getIniPath() string {
@@ -150,7 +152,7 @@ func TranslateFormat(format string) string {
 }
 
 func loadConfig() map[string]interface{} {
-	file, err := os.ReadFile("./config.json")
+	file, err := os.ReadFile("./" + configFile)
 	if err != nil {
 		log.Printf("Failed to read config file, some functionalities may not work: %v\n", err)
 		return nil
@@ -170,15 +172,25 @@ func TranslateEndpoint(resource string) string {
 	config := loadConfig()
 
 	if config != nil {
-		if endpoints, ok := config["endpoints"]; ok && reflect.ValueOf(endpoints).Kind() == reflect.Map {
+		if endpoints, ok := config["resources"]; ok && reflect.ValueOf(endpoints).Kind() == reflect.Map {
 			endpointsMap := endpoints.(map[string]interface{})
-			if endpoint, ok := endpointsMap[resource]; ok && reflect.ValueOf(endpoint).Kind() == reflect.String {
-				return endpoint.(string)
+
+			for key, val := range endpointsMap {
+				if key == resource {
+					return val.(string)
+				}
+
+				if reflect.ValueOf(val).Kind() == reflect.String && resource == val.(string) {
+					return resource
+				}
 			}
 		}
 	}
 
-	return resource
+	log.Printf("Resource '%v' is not supported or the configuration file is invalid. Check or edit supported resources in %v.\n", resource, configFile)
+	os.Exit(1)
+
+	return ""
 }
 
 func WaitForConfirmation(msg string) {
@@ -200,4 +212,11 @@ func WaitForConfirmation(msg string) {
 			log.Println("Invalid input, must be y or n")
 		}
 	}
+}
+
+func PrintCommentForYaml(section *ini.Section, args []string) {
+	fmt.Printf("# Generated on: %v\n", time.Now().Round(0))
+	fmt.Printf("#   from environment: %v (core version %v)\n", section.Key("dhcore_name").String(), section.Key("dhcore_version").String())
+	fmt.Printf("#   found at: %v\n", section.Key("dhcore_endpoint").String())
+	fmt.Printf("#   with parameters: %v\n", strings.Join(args, " "))
 }

@@ -97,7 +97,7 @@ func createHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	// Request
-	_, section := loadConfig([]string{environment})
+	_, section := loadIniConfig([]string{environment})
 	method := "POST"
 	url := utils.BuildCoreUrl(section, project, resource, "", nil)
 	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())

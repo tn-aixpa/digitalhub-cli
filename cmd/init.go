@@ -40,7 +40,7 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	if len(args) > 0 && args[0] == "--pre" {
 		loadArgs = args[1:]
 	}
-	_, section := loadConfig(loadArgs)
+	_, section := loadIniConfig(loadArgs)
 
 	apiVersionMinor := getVersionMinor(section.Key("dhcore_version").String())
 

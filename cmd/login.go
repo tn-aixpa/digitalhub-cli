@@ -40,7 +40,7 @@ func init() {
 
 func loginHandler(args []string, fs *flag.FlagSet) {
 	// Read config from ini file
-	cfg, section := loadConfig(args)
+	cfg, section := loadIniConfig(args)
 
 	// Generate PKCE values
 	codeVerifier, codeChallenge := generatePKCE()
@@ -238,7 +238,7 @@ func openBrowser(url string) error {
 	return cmd.Start()
 }
 
-func loadConfig(args []string) (*ini.File, *ini.Section) {
+func loadIniConfig(args []string) (*ini.File, *ini.Section) {
 	cfg := utils.LoadIni(false)
 
 	sectionName := ""

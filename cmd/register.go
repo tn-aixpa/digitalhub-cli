@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"dhcli/utils"
 	"encoding/json"
-	"errors"
 	"flag"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 )
 
@@ -18,7 +16,7 @@ type OpenIDConfig struct {
 	AuthorizationEndpoint string   `json:"authorization_endpoint" ini:"authorization_endpoint"`
 	TokenEndpoint         string   `json:"token_endpoint" ini:"token_endpoint"`
 	Issuer                string   `json:"issuer" ini:"issuer"`
-	ClientID              string   `json:"dhcore_client_id" ini:"dhcore_client_id"`
+	ClientID              string   `json:"dhcore_client_id" ini:"client_id"`
 	Scope                 []string `json:"scopes_supported" ini:"scopes_supported"`
 	AccessToken           string   `json:"access_token" ini:"access_token"`
 	RefreshToken          string   `json:"refresh_token" ini:"refresh_token"`
@@ -28,7 +26,7 @@ type CoreConfig struct {
 	Name     string `json:"dhcore_name" ini:"dhcore_name"`
 	Issuer   string `json:"issuer" ini:"issuer"`
 	Version  string `json:"dhcore_version" ini:"dhcore_version"`
-	ClientID string `json:"dhcore_client_id" ini:"dhcore_client_id"`
+	ClientID string `json:"dhcore_client_id" ini:"client_id"`
 }
 
 func init() {
@@ -83,7 +81,13 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 
 	for k, v := range res {
 		//add keys
-		section.NewKey(k, utils.ReflectValue(v))
+		if !section.HasKey(k) && k != "dhcore_client_id" {
+			section.NewKey(k, utils.ReflectValue(v))
+		}
+
+		if k == "dhcore_api_level" && v != utils.ExpectedApiLevel {
+			log.Printf("WARNING: API level returned by core (%v) does not match the value expected by the CLI's current version (%v). Errors may arise while using this version with this environment.\n", v, utils.ExpectedApiLevel)
+		}
 	}
 
 	//check for default env
@@ -157,33 +161,6 @@ func fetchOpenIDConfig(configURL string) OpenIDConfig {
 	}
 
 	return config
-}
-
-func toMap(strc interface{}) (map[string]interface{}, error) {
-
-	res := make(map[string]interface{})
-
-	// get or dereference
-	val := reflect.ValueOf(strc)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	typ := val.Type()
-
-	if val.Kind() != reflect.Struct {
-		return res, errors.New("variable given is not a struct or a pointer to a struct")
-	}
-
-	//export to value
-	//NOTE: doesn't support nested structs
-	for i := 0; i < val.NumField(); i++ {
-		fName := typ.Field(i).Name
-		fValue := val.Field(i).Interface()
-		res[fName] = fValue
-	}
-
-	return res, nil
 }
 
 func gitignoreAddIniFile() {

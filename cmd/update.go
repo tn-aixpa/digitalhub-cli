@@ -83,7 +83,7 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	// Request
-	_, section := loadConfig([]string{environment})
+	_, section := loadIniConfig([]string{environment})
 	method := "PUT"
 	url := utils.BuildCoreUrl(section, project, resource, id, nil)
 	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())

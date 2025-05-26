@@ -42,8 +42,12 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 	environment := fs.Lookup("e").Value.String()
 	project := fs.Lookup("p").Value.String()
 	name := fs.Lookup("n").Value.String()
-	cascade := fs.Lookup("c").Value.String()
 	skipConfirm := fs.Lookup("y").Value.String()
+
+	cascade := fs.Lookup("c").Value.String()
+	if resource == "projects" && cascade != "true" {
+		log.Println("WARNING: You are deleting a project without the cascade (-c) flag. Resources belonging to the project will not be deleted.")
+	}
 
 	if resource != "projects" && project == "" {
 		log.Println("Project is mandatory when performing this operation on resources other than projects.")
@@ -68,7 +72,7 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 		}
 	}
 
-	_, section := loadConfig([]string{environment})
+	_, section := loadIniConfig([]string{environment})
 
 	// Ask for confirmation
 	if skipConfirm != "true" {

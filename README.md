@@ -4,7 +4,7 @@ The Command-Line Interface (CLI) is a simple tool that offers a number of functi
 
 The executable can be downloaded in the *Releases* page.
 
-For a full overview of available commands, please check [the documentation](https://scc-digitalhub.github.io/docs/0.11/cli/commands/)].
+For a full overview of available commands, please check [the documentation](https://scc-digitalhub.github.io/docs/0.11/cli/commands/).
 
 ## Installation
 
