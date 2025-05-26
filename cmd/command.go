@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 )
 
@@ -21,10 +21,10 @@ func RegisterCommand(cmd *Command) {
 
 func ExecuteCommand(args []string) {
 	if len(args) < 1 || args[0] == "-h" || args[0] == "--help" {
-		fmt.Println("Usage: dhcli <command> [options]")
-		fmt.Println("\nAvailable commands:")
+		log.Println("Usage: dhcli <command> [options]")
+		log.Println("\nAvailable commands:")
 		for _, cmd := range commands {
-			fmt.Printf("  %s: %s\n", cmd.Name, cmd.Description)
+			log.Printf("  %s: %s\n", cmd.Name, cmd.Description)
 		}
 		os.Exit(1)
 	}
@@ -33,8 +33,8 @@ func ExecuteCommand(args []string) {
 	commandName := args[0]
 	command, exists := commands[commandName]
 	if !exists {
-		fmt.Printf("Unknown command: %s\n", commandName)
-		fmt.Println("Run dhcli to see available commands.")
+		log.Printf("Unknown command: %s\n", commandName)
+		log.Println("Run dhcli to see available commands.")
 		os.Exit(1)
 	}
 

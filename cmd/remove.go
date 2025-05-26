@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
-
-	"gopkg.in/ini.v1"
 
 	"dhcli/utils"
 )
@@ -22,10 +20,8 @@ func init() {
 }
 
 func removeHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	if len(args) < 1 {
-		fmt.Printf("Error: Environment is a required positional argument.\nUsage: dhcli remove <environment>\n")
+		log.Printf("Error: Environment is a required positional argument.\nUsage: dhcli remove <environment>\n")
 		os.Exit(1)
 	}
 
@@ -33,7 +29,7 @@ func removeHandler(args []string, fs *flag.FlagSet) {
 
 	cfg := utils.LoadIni(false)
 	if !cfg.HasSection(sectionName) {
-		fmt.Printf("Specified environment does not exist.\n")
+		log.Printf("Specified environment does not exist.\n")
 		os.Exit(0)
 	}
 
@@ -45,5 +41,5 @@ func removeHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	utils.SaveIni(cfg)
-	fmt.Printf("'%v' has been removed.\n", sectionName)
+	log.Printf("'%v' has been removed.\n", sectionName)
 }

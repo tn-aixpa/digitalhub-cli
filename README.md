@@ -4,89 +4,18 @@ The Command-Line Interface (CLI) is a simple tool that offers a number of functi
 
 The executable can be downloaded in the *Releases* page.
 
+For a full overview of available commands, please check [the documentation](https://scc-digitalhub.github.io/docs/0.11/cli/commands/).
+
 ## Installation
 
 Download and unpack the corresponding archive from the [GitHub release page](https://github.com/scc-digitalhub/digitalhub-cli/releases). Run the ``dhcli`` executable. 
 
-In case of Mac, it is possible to use Homebrew Tap distribution:
+On Mac, you can use Homebrew Tap distribution:
 
 ``` sh
 brew tap scc-digitalhub/digitalhub-cli https://github.com/scc-digitalhub/digitalhub-cli
 brew install dhcli
 ```
-
-## Commands
-
-Available commands and their parameters are listed here. In these examples, the executable is named `dhcli`. When you provide *optional* parameters, make sure they are listed **before** *mandatory* ones.
-
-### `register`
-`register` takes the following parameters:
-
-- `-n name` (Optional)
-- `core_endpoint`
-
-``` sh
-dhcli register -n example http://localhost:8080
-```
-It will create a `.dhcore.ini` file (if it doesn't already exist) in the user's home directory, or, if not possible, in the current one. A section will be appended, using the provided name (or, if missing, the one returned by the endpoint), containing the environment's configuration. This environment will be set as default, unless one is already set.
-
-### `list-env`
-`list-env` lists available environments. It takes no parameters.
-
-``` sh
-dhcli list-env
-```
-
-### `use`
-`use` takes the following parameters:
-
-- `environment`
-
-``` sh
-dhcli use example
-```
-This will set the default environment.
-
-### `login`
-`login` is to be used after registering an environment with the `register` command. It takes the following parameters:
-
-- `environment` (Optional)
-
-``` sh
-dhcli login example
-```
-It will read the corresponding section from the configuration file and start the log in procedure. It will update this section with the access token obtained. If no environment is specified, it will use the default one.
-
-### `refresh`
-`refresh` is to be used after the `login` command, to update `access_token` and `refresh_token`. It takes the following parameters:
-
-- `environment` (Optional)
-
-``` sh
-dhcli refresh example
-```
-If no environment is specified, it will use the default one.
-
-### `remove`
-`remove` takes the following parameters:
-
-- `environment`
-
-``` sh
-dhcli remove example
-```
-It will remove the section from the configuration file.
-
-### `init`
-`init` is used to install the platform's Python packages; therefore, Python must be installed. It takes the following parameters:
-
-- `environment` (Optional)
-
-``` sh
-dhcli init example
-```
-It will match core's minor version as indicated in the specified environment. If no environment is specified, it will use the default one.
-
 
 ## Build and publish
 

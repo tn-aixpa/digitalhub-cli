@@ -1,0 +1,11 @@
+kind: dataitem
+name: my-dataitem
+project: my-project
+metadata:
+  name: MyDataItem
+  description: This is a sample data item.
+  project: my-project
+  labels:
+    - sample
+spec:
+  path: sample/path/

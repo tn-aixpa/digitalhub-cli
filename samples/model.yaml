@@ -1,0 +1,12 @@
+kind: model
+name: my-model
+project: my-project
+metadata:
+  name: MyModel
+  description: This is a sample model.
+  project: my-project
+  labels:
+    - sample
+spec:
+  path: sample/path/
+  parameters: {}

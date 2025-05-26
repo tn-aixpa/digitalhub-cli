@@ -1,9 +1,16 @@
 package utils
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"gopkg.in/ini.v1"
@@ -12,6 +19,8 @@ import (
 const (
 	IniName            = ".dhcore.ini"
 	CurrentEnvironment = "current_environment"
+	ExpectedApiLevel   = "11"
+	configFile         = "config.json"
 )
 
 func getIniPath() string {
@@ -28,7 +37,7 @@ func LoadIni(createOnMissing bool) *ini.File {
 	cfg, err := ini.Load(getIniPath())
 	if err != nil {
 		if !createOnMissing {
-			fmt.Printf("Failed to read ini file: %v\n", err)
+			log.Printf("Failed to read ini file: %v\n", err)
 			os.Exit(1)
 		}
 		return ini.Empty()
@@ -40,7 +49,7 @@ func LoadIni(createOnMissing bool) *ini.File {
 func SaveIni(cfg *ini.File) {
 	err := cfg.SaveTo(getIniPath())
 	if err != nil {
-		fmt.Printf("Failed to update ini file: %v\n", err)
+		log.Printf("Failed to update ini file: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -66,4 +75,148 @@ func ReflectValue(v interface{}) string {
 	default:
 		return ""
 	}
+}
+
+func BuildCoreUrl(section *ini.Section, project string, resource string, id string, params map[string]string) string {
+	base := section.Key("dhcore_endpoint").String() + "/api/" + section.Key("dhcore_api_version").String()
+	endpoint := ""
+	paramsString := ""
+	if resource != "projects" && project != "" {
+		endpoint += "/-/" + project
+	}
+	endpoint += "/" + resource
+	if id != "" {
+		endpoint += "/" + id
+	}
+	if params != nil && len(params) > 0 {
+		paramsString = "?"
+		for key, val := range params {
+			if val != "" {
+				paramsString += key + "=" + val + "&"
+			}
+		}
+		paramsString = paramsString[:len(paramsString)-1]
+	}
+
+	return base + endpoint + paramsString
+}
+
+func PrepareRequest(method string, url string, data []byte, accessToken string) *http.Request {
+	var body io.Reader = nil
+	if data != nil {
+		body = bytes.NewReader(data)
+	}
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		log.Printf("Failed to initialize request: %v\n", err)
+		os.Exit(1)
+	}
+
+	if data != nil {
+		req.Header.Add("Content-type", "application/json")
+	}
+
+	if accessToken != "" {
+		req.Header.Add("Authorization", "Bearer "+accessToken)
+	}
+
+	return req
+}
+
+func DoRequest(req *http.Request) ([]byte, error) {
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error performing request: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Printf("Core responded with error %v\n", resp.Status)
+		os.Exit(1)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	return body, err
+}
+
+func TranslateFormat(format string) string {
+	lower := strings.ToLower(format)
+	if lower == "json" {
+		return "json"
+	} else if lower == "yaml" || lower == "yml" {
+		return "yaml"
+	}
+	return "short"
+}
+
+func loadConfig() map[string]interface{} {
+	file, err := os.ReadFile("./" + configFile)
+	if err != nil {
+		log.Printf("Failed to read config file, some functionalities may not work: %v\n", err)
+		return nil
+	}
+
+	var config map[string]interface{}
+	err = json.Unmarshal(file, &config)
+	if err != nil {
+		log.Printf("Error unmarshalling config file, some functionalities may not work: %v\n", err)
+		return nil
+	}
+
+	return config
+}
+
+func TranslateEndpoint(resource string) string {
+	config := loadConfig()
+
+	if config != nil {
+		if endpoints, ok := config["resources"]; ok && reflect.ValueOf(endpoints).Kind() == reflect.Map {
+			endpointsMap := endpoints.(map[string]interface{})
+
+			for key, val := range endpointsMap {
+				if key == resource {
+					return val.(string)
+				}
+
+				if reflect.ValueOf(val).Kind() == reflect.String && resource == val.(string) {
+					return resource
+				}
+			}
+		}
+	}
+
+	log.Printf("Resource '%v' is not supported or the configuration file is invalid. Check or edit supported resources in %v.\n", resource, configFile)
+	os.Exit(1)
+
+	return ""
+}
+
+func WaitForConfirmation(msg string) {
+	for {
+		buf := bufio.NewReader(os.Stdin)
+		log.Printf(msg)
+		userInput, err := buf.ReadBytes('\n')
+		if err != nil {
+			log.Printf("Error in reading user input: %v\n", err)
+			os.Exit(1)
+		} else {
+			yn := strings.TrimSpace(string(userInput))
+			if strings.ToLower(yn) == "y" || yn == "" {
+				break
+			} else if strings.ToLower(yn) == "n" {
+				log.Println("Cancelling.")
+				os.Exit(0)
+			}
+			log.Println("Invalid input, must be y or n")
+		}
+	}
+}
+
+func PrintCommentForYaml(section *ini.Section, args []string) {
+	fmt.Printf("# Generated on: %v\n", time.Now().Round(0))
+	fmt.Printf("#   from environment: %v (core version %v)\n", section.Key("dhcore_name").String(), section.Key("dhcore_version").String())
+	fmt.Printf("#   found at: %v\n", section.Key("dhcore_endpoint").String())
+	fmt.Printf("#   with parameters: %v\n", strings.Join(args, " "))
 }

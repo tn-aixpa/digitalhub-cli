@@ -4,23 +4,19 @@ import (
 	"bufio"
 	"dhcli/utils"
 	"encoding/json"
-	"errors"
 	"flag"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
-
-	"gopkg.in/ini.v1"
 )
 
 type OpenIDConfig struct {
 	AuthorizationEndpoint string   `json:"authorization_endpoint" ini:"authorization_endpoint"`
 	TokenEndpoint         string   `json:"token_endpoint" ini:"token_endpoint"`
 	Issuer                string   `json:"issuer" ini:"issuer"`
-	ClientID              string   `json:"dhcore_client_id" ini:"dhcore_client_id"`
+	ClientID              string   `json:"dhcore_client_id" ini:"client_id"`
 	Scope                 []string `json:"scopes_supported" ini:"scopes_supported"`
 	AccessToken           string   `json:"access_token" ini:"access_token"`
 	RefreshToken          string   `json:"refresh_token" ini:"refresh_token"`
@@ -30,30 +26,27 @@ type CoreConfig struct {
 	Name     string `json:"dhcore_name" ini:"dhcore_name"`
 	Issuer   string `json:"issuer" ini:"issuer"`
 	Version  string `json:"dhcore_version" ini:"dhcore_version"`
-	ClientID string `json:"dhcore_client_id" ini:"dhcore_client_id"`
+	ClientID string `json:"dhcore_client_id" ini:"client_id"`
 }
 
 func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
-		Description: "dhcli register [-n <name>] <endpoint>",
+		Description: "dhcli register [-e <environment>] <endpoint>",
 		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("n", "", "name")
+			fs.String("e", "", "environment")
 		},
 		Handler: registerHandler,
 	})
 }
 
 func registerHandler(args []string, fs *flag.FlagSet) {
-	ini.DefaultHeader = true
-
 	if len(args) < 1 {
-		fmt.Printf("Error: Endpoint is required.\nUsage: dhcli register [-n <name>] <endpoint>\n")
+		log.Println("Error: Endpoint is required.\nUsage: dhcli register [-e <environment name>] <endpoint>")
 		os.Exit(1)
 	}
 	fs.Parse(args)
-
-	name := fs.Lookup("n").Value.String()
+	environment := fs.Lookup("e").Value.String()
 	endpoint := fs.Args()[0]
 	if !strings.HasSuffix(endpoint, "/") {
 		endpoint += "/"
@@ -64,14 +57,18 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 
 	//collect to map+struct
 	res, coreConfig := fetchConfig(endpoint + ".well-known/configuration")
-	if name == "" || name == "null" {
-		name = coreConfig.Name
-		if name == "" {
-			fmt.Printf("Failed to register: environment name not specified and not defined in core's configuration.\n")
+	if environment == "" || environment == "null" {
+		environment = coreConfig.Name
+		if environment == "" {
+			log.Println("Failed to register: environment name not specified and not defined in core's configuration.")
 			os.Exit(1)
 		}
 	}
-	section := cfg.Section(name)
+
+	if cfg.HasSection(environment) {
+		log.Printf("Section '%v' already exists, will be overwritten.\n", environment)
+	}
+	section := cfg.Section(environment)
 	for _, k := range section.Keys() {
 		section.DeleteKey(k.Name())
 	}
@@ -84,48 +81,54 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 
 	for k, v := range res {
 		//add keys
-		section.NewKey(k, utils.ReflectValue(v))
+		if !section.HasKey(k) && k != "dhcore_client_id" {
+			section.NewKey(k, utils.ReflectValue(v))
+		}
+
+		if k == "dhcore_api_level" && v != utils.ExpectedApiLevel {
+			log.Printf("WARNING: API level returned by core (%v) does not match the value expected by the CLI's current version (%v). Errors may arise while using this version with this environment.\n", v, utils.ExpectedApiLevel)
+		}
 	}
 
 	//check for default env
 	defaultSection := cfg.Section("DEFAULT")
 	if !defaultSection.HasKey(utils.CurrentEnvironment) {
-		defaultSection.NewKey(utils.CurrentEnvironment, name)
+		defaultSection.NewKey(utils.CurrentEnvironment, environment)
 	}
 
 	// gitignoreAddIniFile()
 	utils.SaveIni(cfg)
-	fmt.Printf("'%v' registered.\n", name)
+	log.Printf("'%v' registered.\n", environment)
 }
 
 func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 	resp, err := http.Get(configURL)
 	if err != nil {
-		fmt.Printf("Error fetching core configuration: %v\n", err)
+		log.Printf("Error fetching core configuration: %v\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Printf("Core responded with error %v\n", resp.Status)
+		log.Printf("Core responded with error %v\n", resp.Status)
 		os.Exit(1)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading core configuration response: %v\n", err)
+		log.Printf("Error reading core configuration response: %v\n", err)
 		os.Exit(1)
 	}
 
 	var res map[string]interface{}
 	if err := json.Unmarshal(body, &res); err != nil {
-		fmt.Printf("Error parsing core configuration: %v\n", err)
+		log.Printf("Error parsing core configuration: %v\n", err)
 		os.Exit(1)
 	}
 
 	var config CoreConfig
 	if err := json.Unmarshal(body, &config); err != nil {
-		fmt.Printf("Error parsing core configuration: %v\n", err)
+		log.Printf("Error parsing core configuration: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -135,63 +138,36 @@ func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 func fetchOpenIDConfig(configURL string) OpenIDConfig {
 	resp, err := http.Get(configURL)
 	if err != nil {
-		fmt.Printf("Error fetching OpenID configuration: %v\n", err)
+		log.Printf("Error fetching OpenID configuration: %v\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Printf("Core responded with error %v\n", resp.Status)
+		log.Printf("Core responded with error %v\n", resp.Status)
 		os.Exit(1)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading OpenID configuration response: %v\n", err)
+		log.Printf("Error reading OpenID configuration response: %v\n", err)
 		os.Exit(1)
 	}
 
 	var config OpenIDConfig
 	if err := json.Unmarshal(body, &config); err != nil {
-		fmt.Printf("Error parsing OpenID configuration: %v\n", err)
+		log.Printf("Error parsing OpenID configuration: %v\n", err)
 		os.Exit(1)
 	}
 
 	return config
 }
 
-func toMap(strc interface{}) (map[string]interface{}, error) {
-
-	res := make(map[string]interface{})
-
-	// get or dereference
-	val := reflect.ValueOf(strc)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	typ := val.Type()
-
-	if val.Kind() != reflect.Struct {
-		return res, errors.New("variable given is not a struct or a pointer to a struct")
-	}
-
-	//export to value
-	//NOTE: doesn't support nested structs
-	for i := 0; i < val.NumField(); i++ {
-		fName := typ.Field(i).Name
-		fValue := val.Field(i).Interface()
-		res[fName] = fValue
-	}
-
-	return res, nil
-}
-
 func gitignoreAddIniFile() {
 	path := "./.gitignore"
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		fmt.Printf("Cannot open .gitignore file: %v\n", err)
+		log.Printf("Cannot open .gitignore file: %v\n", err)
 		os.Exit(1)
 	}
 	defer f.Close()
@@ -204,12 +180,12 @@ func gitignoreAddIniFile() {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("Error while reading .gitignore file contents: %v\n", err)
+		log.Printf("Error while reading .gitignore file contents: %v\n", err)
 		os.Exit(1)
 	}
 
 	if _, err = f.WriteString(utils.IniName); err != nil {
-		fmt.Printf("Error while adding entry to .gitignore file: %v\n", err)
+		log.Printf("Error while adding entry to .gitignore file: %v\n", err)
 		os.Exit(1)
 	}
 }
