@@ -71,7 +71,13 @@ func ReflectValue(v interface{}) string {
 	case reflect.TypeOf(time.Now()).Kind():
 		return f.Interface().(time.Time).Format(time.RFC3339)
 	case reflect.Slice:
-		return fmt.Sprint(f.Interface())
+		s := []string{}
+		for _, element := range f.Interface().([]interface{}) {
+			if reflect.ValueOf(element).Kind() == reflect.String {
+				s = append(s, element.(string))
+			}
+		}
+		return strings.Join(s, ",")
 	default:
 		return ""
 	}
