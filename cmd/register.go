@@ -40,6 +40,10 @@ func init() {
 	})
 }
 
+const (
+	ExpectedApiLevel = "11"
+)
+
 func registerHandler(args []string, fs *flag.FlagSet) {
 	if len(args) < 1 {
 		log.Println("Error: Endpoint is required.\nUsage: dhcli register [-e <environment name>] <endpoint>")
@@ -85,8 +89,8 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 			section.NewKey(k, utils.ReflectValue(v))
 		}
 
-		if k == "dhcore_api_level" && v != utils.ExpectedApiLevel {
-			log.Printf("WARNING: API level returned by core (%v) does not match the value expected by the CLI's current version (%v). Errors may arise while using this version with this environment.\n", v, utils.ExpectedApiLevel)
+		if k == "dhcore_api_level" && v != ExpectedApiLevel {
+			log.Printf("WARNING: API level returned by core (%v) does not match the value expected by the CLI's current version (%v). Errors may arise while using this version with this environment.\n", v, ExpectedApiLevel)
 		}
 	}
 

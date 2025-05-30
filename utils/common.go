@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,7 +20,6 @@ import (
 const (
 	IniName            = ".dhcore.ini"
 	CurrentEnvironment = "current_environment"
-	ExpectedApiLevel   = "11"
 	configFile         = "config.json"
 )
 
@@ -225,4 +225,85 @@ func PrintCommentForYaml(section *ini.Section, args []string) {
 	fmt.Printf("#   from environment: %v (core version %v)\n", section.Key("dhcore_name").String(), section.Key("dhcore_version").String())
 	fmt.Printf("#   found at: %v\n", section.Key("dhcore_endpoint").String())
 	fmt.Printf("#   with parameters: %v\n", strings.Join(args, " "))
+}
+
+func SplitVersion(version string) (string, string, string, string) {
+	major := ""
+	minor := ""
+	patch := ""
+	other := ""
+
+	parts := strings.Split(version, ".")
+
+	major = parts[0]
+
+	if len(parts) > 1 {
+		minor = parts[1]
+	}
+
+	if len(parts) > 2 {
+		patch = parts[2]
+	}
+
+	if len(parts) > 3 {
+		other = strings.Join(parts[3:], ".")
+	}
+
+	return major, minor, patch, other
+}
+
+func compareVersions(a string, b string) int {
+	majorA, minorA, patchA, otherA := SplitVersion(a)
+	majorB, minorB, patchB, otherB := SplitVersion(b)
+
+	res := compareVersionSegment(majorA, majorB)
+	if res != 0 {
+		return res
+	}
+	res = compareVersionSegment(minorA, minorB)
+	if res != 0 {
+		return res
+	}
+	res = compareVersionSegment(patchA, patchB)
+	if res != 0 {
+		return res
+	}
+	return compareVersionSegment(otherA, otherB)
+}
+
+func compareVersionSegment(a string, b string) int {
+	// If one has a value and the other doesn't, the one with a value is bigger
+	if a == "" {
+		if b == "" {
+			return 0
+		}
+		return -1
+	}
+
+	if b == "" {
+		return 1
+	}
+
+	// If one of them cannot be converted to int, compare as strings
+	aInt, err := strconv.Atoi(a)
+	if err != nil {
+		return strings.Compare(a, b)
+	}
+	bInt, err := strconv.Atoi(b)
+	if err != nil {
+		return strings.Compare(a, b)
+	}
+
+	// Compare as int
+	return aInt - bInt
+}
+
+func IsVersionWithin(version string, min string, max string) bool {
+	if min != "" && compareVersions(version, min) < 0 {
+		return false
+	}
+	if max != "" && compareVersions(version, max) > 0 {
+		return false
+	}
+	return true
 }

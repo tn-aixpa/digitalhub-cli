@@ -24,6 +24,11 @@ import (
 	"dhcli/utils"
 )
 
+const (
+	minApiLevel = "0.10"
+	maxApiLevel = ""
+)
+
 var (
 	redirectURI    = "http://localhost:4000/callback"
 	generatedState string
