@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"dhcli/utils"
 	"flag"
 	"log"
 	"os"
@@ -43,8 +42,11 @@ func initHandler(args []string, fs *flag.FlagSet) {
 	}
 	_, section := loadIniConfig(loadArgs)
 
-	major, minor, _, _ := utils.SplitVersion(section.Key("dhcore_version").String())
-	apiVersionMinor := strings.Join([]string{major, minor}, ".")
+	apiVersionMinor := section.Key("dhcore_version").String()
+	versionSplits := strings.SplitN(apiVersionMinor, ".", 3)
+	if len(versionSplits) > 2 {
+		apiVersionMinor = strings.Join(versionSplits[:2], ".")
+	}
 
 	// Ask for confirmation
 	for {

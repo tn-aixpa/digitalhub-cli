@@ -33,7 +33,11 @@ func createHandler(args []string, fs *flag.FlagSet) {
 	}
 	resource := utils.TranslateEndpoint(fs.Args()[0])
 
+	// Load environment and check API level requirements
 	environment := fs.Lookup("e").Value.String()
+	_, section := loadIniConfig([]string{environment})
+	utils.CheckApiLevel(section, utils.CreateMin, utils.CreateMax)
+
 	project := fs.Lookup("p").Value.String()
 	filePath := fs.Lookup("f").Value.String()
 	name := fs.Lookup("n").Value.String()
@@ -97,7 +101,6 @@ func createHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	// Request
-	_, section := loadIniConfig([]string{environment})
 	method := "POST"
 	url := utils.BuildCoreUrl(section, project, resource, "", nil)
 	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())

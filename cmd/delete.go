@@ -39,7 +39,11 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 		id = fs.Args()[1]
 	}
 
+	// Load environment and check API level requirements
 	environment := fs.Lookup("e").Value.String()
+	_, section := loadIniConfig([]string{environment})
+	utils.CheckApiLevel(section, utils.DeleteMin, utils.DeleteMax)
+
 	project := fs.Lookup("p").Value.String()
 	name := fs.Lookup("n").Value.String()
 	skipConfirm := fs.Lookup("y").Value.String()
@@ -71,8 +75,6 @@ func deleteHandler(args []string, fs *flag.FlagSet) {
 			id = name
 		}
 	}
-
-	_, section := loadIniConfig([]string{environment})
 
 	// Ask for confirmation
 	if skipConfirm != "true" {

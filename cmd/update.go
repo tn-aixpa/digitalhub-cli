@@ -32,7 +32,11 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 	resource := utils.TranslateEndpoint(fs.Args()[0])
 	id := fs.Args()[1]
 
+	// Load environment and check API level requirements
 	environment := fs.Lookup("e").Value.String()
+	_, section := loadIniConfig([]string{environment})
+	utils.CheckApiLevel(section, utils.UpdateMin, utils.UpdateMax)
+
 	project := fs.Lookup("p").Value.String()
 	filePath := fs.Lookup("f").Value.String()
 
@@ -83,7 +87,6 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 	}
 
 	// Request
-	_, section := loadIniConfig([]string{environment})
 	method := "PUT"
 	url := utils.BuildCoreUrl(section, project, resource, id, nil)
 	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())

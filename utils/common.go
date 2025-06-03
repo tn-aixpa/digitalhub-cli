@@ -17,12 +17,6 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	IniName            = ".dhcore.ini"
-	CurrentEnvironment = "current_environment"
-	configFile         = "config.json"
-)
-
 func getIniPath() string {
 	iniPath, err := os.UserHomeDir()
 	if err != nil {
@@ -227,83 +221,30 @@ func PrintCommentForYaml(section *ini.Section, args []string) {
 	fmt.Printf("#   with parameters: %v\n", strings.Join(args, " "))
 }
 
-func SplitVersion(version string) (string, string, string, string) {
-	major := ""
-	minor := ""
-	patch := ""
-	other := ""
-
-	parts := strings.Split(version, ".")
-
-	major = parts[0]
-
-	if len(parts) > 1 {
-		minor = parts[1]
+func CheckApiLevel(section *ini.Section, min int, max int) {
+	if !section.HasKey(ApiLevelKey) {
+		log.Println("ERROR: Unable to check compatibility, environment does not specify API level.")
+		os.Exit(1)
 	}
 
-	if len(parts) > 2 {
-		patch = parts[2]
-	}
-
-	if len(parts) > 3 {
-		other = strings.Join(parts[3:], ".")
-	}
-
-	return major, minor, patch, other
-}
-
-func compareVersions(a string, b string) int {
-	majorA, minorA, patchA, otherA := SplitVersion(a)
-	majorB, minorB, patchB, otherB := SplitVersion(b)
-
-	res := compareVersionSegment(majorA, majorB)
-	if res != 0 {
-		return res
-	}
-	res = compareVersionSegment(minorA, minorB)
-	if res != 0 {
-		return res
-	}
-	res = compareVersionSegment(patchA, patchB)
-	if res != 0 {
-		return res
-	}
-	return compareVersionSegment(otherA, otherB)
-}
-
-func compareVersionSegment(a string, b string) int {
-	// If one has a value and the other doesn't, the one with a value is bigger
-	if a == "" {
-		if b == "" {
-			return 0
-		}
-		return -1
-	}
-
-	if b == "" {
-		return 1
-	}
-
-	// If one of them cannot be converted to int, compare as strings
-	aInt, err := strconv.Atoi(a)
+	apiLevelString := section.Key(ApiLevelKey).Value()
+	apiLevel, err := strconv.Atoi(apiLevelString)
 	if err != nil {
-		return strings.Compare(a, b)
-	}
-	bInt, err := strconv.Atoi(b)
-	if err != nil {
-		return strings.Compare(a, b)
+		log.Printf("ERROR: Unable to check compatibility, as API level %v could not be read as integer.\n", apiLevelString)
+		os.Exit(1)
 	}
 
-	// Compare as int
-	return aInt - bInt
-}
+	supportedInterval := ""
+	if min != 0 {
+		supportedInterval += fmt.Sprintf("%v <= ", min)
+	}
+	supportedInterval += "level"
+	if max != 0 {
+		supportedInterval += fmt.Sprintf(" <= %v", max)
+	}
 
-func IsVersionWithin(version string, min string, max string) bool {
-	if min != "" && compareVersions(version, min) < 0 {
-		return false
+	if (min != 0 && apiLevel < min) || (max != 0 && apiLevel > max) {
+		log.Printf("ERROR: API level %v is not within the supported interval for this command: %v\n", apiLevel, supportedInterval)
+		os.Exit(1)
 	}
-	if max != "" && compareVersions(version, max) > 0 {
-		return false
-	}
-	return true
 }

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -39,10 +40,6 @@ func init() {
 		Handler: registerHandler,
 	})
 }
-
-const (
-	ExpectedApiLevel = "11"
-)
 
 func registerHandler(args []string, fs *flag.FlagSet) {
 	if len(args) < 1 {
@@ -83,15 +80,24 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	openIDConfig.ClientID = coreConfig.ClientID
 	section.ReflectFrom(&openIDConfig)
 
+	apiLevel := ""
+
 	for k, v := range res {
 		//add keys
 		if !section.HasKey(k) && k != "dhcore_client_id" {
 			section.NewKey(k, utils.ReflectValue(v))
 		}
 
-		if k == "dhcore_api_level" && v != ExpectedApiLevel {
-			log.Printf("WARNING: API level returned by core (%v) does not match the value expected by the CLI's current version (%v). Errors may arise while using this version with this environment.\n", v, ExpectedApiLevel)
+		if k == utils.ApiLevelKey {
+			apiLevel = v.(string)
 		}
+	}
+
+	apiLevelInt, err := strconv.Atoi(apiLevel)
+	if err != nil {
+		log.Println("WARNING: Registering an environment that may be incompatible with this version of the CLI: API level is not specified or cannot be read as integer.")
+	} else if apiLevelInt < utils.MinApiLevel {
+		log.Printf("WARNING: Registering an environment with an API level (%v) that does not meet the CLI's minimum requirement (%v). Some commands may not work correctly.\n", apiLevelInt, utils.MinApiLevel)
 	}
 
 	//check for default env

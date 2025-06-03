@@ -41,7 +41,11 @@ func listHandler(args []string, fs *flag.FlagSet) {
 	}
 	resource := utils.TranslateEndpoint(fs.Args()[0])
 
+	// Load environment and check API level requirements
 	environment := fs.Lookup("e").Value.String()
+	_, section := loadIniConfig([]string{environment})
+	utils.CheckApiLevel(section, utils.ListMin, utils.ListMax)
+
 	format := utils.TranslateFormat(fs.Lookup("o").Value.String())
 	project := fs.Lookup("p").Value.String()
 
@@ -59,8 +63,6 @@ func listHandler(args []string, fs *flag.FlagSet) {
 	params["state"] = fs.Lookup("s").Value.String()
 	params["size"] = "200"
 	params["sort"] = "updated,asc"
-
-	_, section := loadIniConfig([]string{environment})
 
 	method := "GET"
 	url := utils.BuildCoreUrl(section, project, resource, "", params)

@@ -46,6 +46,7 @@ func init() {
 func loginHandler(args []string, fs *flag.FlagSet) {
 	// Read config from ini file
 	cfg, section := loadIniConfig(args)
+	utils.CheckApiLevel(section, utils.LoginMin, utils.LoginMax)
 
 	// Generate PKCE values
 	codeVerifier, codeChallenge := generatePKCE()

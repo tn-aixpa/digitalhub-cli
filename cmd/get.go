@@ -43,7 +43,11 @@ func getHandler(args []string, fs *flag.FlagSet) {
 		id = fs.Args()[1]
 	}
 
+	// Load environment and check API level requirements
 	environment := fs.Lookup("e").Value.String()
+	_, section := loadIniConfig([]string{environment})
+	utils.CheckApiLevel(section, utils.GetMin, utils.GetMax)
+
 	format := utils.TranslateFormat(fs.Lookup("o").Value.String())
 	project := fs.Lookup("p").Value.String()
 	name := fs.Lookup("n").Value.String()
@@ -64,8 +68,6 @@ func getHandler(args []string, fs *flag.FlagSet) {
 		params["name"] = name
 		params["versions"] = "latest"
 	}
-
-	_, section := loadIniConfig([]string{environment})
 
 	method := "GET"
 	url := utils.BuildCoreUrl(section, project, resource, id, params)
