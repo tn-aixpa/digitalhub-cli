@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type OpenIDConfig struct {
@@ -100,7 +101,9 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 		log.Printf("WARNING: Registering an environment with an API level (%v) that does not meet the CLI's minimum requirement (%v). Some commands may not work correctly.\n", apiLevelInt, utils.MinApiLevel)
 	}
 
-	//check for default env
+	section.NewKey(utils.UpdatedEnvKey, time.Now().Format(time.RFC3339))
+
+	// Check for default env
 	defaultSection := cfg.Section("DEFAULT")
 	if !defaultSection.HasKey(utils.CurrentEnvironment) {
 		defaultSection.NewKey(utils.CurrentEnvironment, environment)

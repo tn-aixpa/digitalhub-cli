@@ -5,6 +5,7 @@ const (
 	CurrentEnvironment = "current_environment"
 	configFile         = "config.json"
 	ApiLevelKey        = "dhcore_api_level"
+	UpdatedEnvKey      = "updated_environment"
 
 	// API level the current version of the CLI was developed for
 	MinApiLevel = 10
