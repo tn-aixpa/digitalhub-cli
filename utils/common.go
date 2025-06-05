@@ -17,6 +17,23 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+type OpenIDConfig struct {
+	AuthorizationEndpoint string   `json:"authorization_endpoint" ini:"authorization_endpoint"`
+	TokenEndpoint         string   `json:"token_endpoint" ini:"token_endpoint"`
+	Issuer                string   `json:"issuer" ini:"issuer"`
+	ClientID              string   `json:"dhcore_client_id" ini:"client_id"`
+	Scope                 []string `json:"scopes_supported" ini:"scopes_supported"`
+	AccessToken           string   `json:"access_token" ini:"access_token"`
+	RefreshToken          string   `json:"refresh_token" ini:"refresh_token"`
+}
+
+type CoreConfig struct {
+	Name     string `json:"dhcore_name" ini:"dhcore_name"`
+	Issuer   string `json:"issuer" ini:"issuer"`
+	Version  string `json:"dhcore_version" ini:"dhcore_version"`
+	ClientID string `json:"dhcore_client_id" ini:"client_id"`
+}
+
 func getIniPath() string {
 	iniPath, err := os.UserHomeDir()
 	if err != nil {
@@ -78,7 +95,7 @@ func ReflectValue(v interface{}) string {
 }
 
 func BuildCoreUrl(section *ini.Section, project string, resource string, id string, params map[string]string) string {
-	base := section.Key("dhcore_endpoint").String() + "/api/" + section.Key("dhcore_api_version").String()
+	base := section.Key(DhCoreEndpoint).String() + "/api/" + section.Key("dhcore_api_version").String()
 	endpoint := ""
 	paramsString := ""
 	if resource != "projects" && project != "" {
@@ -217,7 +234,7 @@ func WaitForConfirmation(msg string) {
 func PrintCommentForYaml(section *ini.Section, args []string) {
 	fmt.Printf("# Generated on: %v\n", time.Now().Round(0))
 	fmt.Printf("#   from environment: %v (core version %v)\n", section.Key("dhcore_name").String(), section.Key("dhcore_version").String())
-	fmt.Printf("#   found at: %v\n", section.Key("dhcore_endpoint").String())
+	fmt.Printf("#   found at: %v\n", section.Key(DhCoreEndpoint).String())
 	fmt.Printf("#   with parameters: %v\n", strings.Join(args, " "))
 }
 
@@ -247,4 +264,94 @@ func CheckApiLevel(section *ini.Section, min int, max int) {
 		log.Printf("ERROR: API level %v is not within the supported interval for this command: %v\n", apiLevel, supportedInterval)
 		os.Exit(1)
 	}
+}
+
+func CheckUpdateEnvironment(cfg *ini.File, section *ini.Section) {
+	doUpdate := false
+
+	if section.HasKey(UpdatedEnvKey) {
+		updated, err := time.Parse(time.RFC3339, section.Key(UpdatedEnvKey).Value())
+		if err != nil {
+			doUpdate = true
+		} else {
+			if updated.Add(outdatedAfterHours * time.Hour).Before(time.Now()) {
+				doUpdate = true
+			}
+		}
+	}
+
+	if doUpdate {
+		updateEnvironment(cfg, section)
+	}
+}
+
+func updateEnvironment(cfg *ini.File, section *ini.Section) {
+	baseEndpoint := section.Key(DhCoreEndpoint).Value()
+	if baseEndpoint == "" {
+		return
+	}
+
+	// Configuration
+	resp, err := http.Get(baseEndpoint + "/.well-known/configuration")
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(body, &config); err != nil {
+		return
+	}
+
+	// Update keys
+	for k, v := range config {
+		if !section.HasKey(k) {
+			section.NewKey(k, ReflectValue(v))
+		} else {
+			section.Key(k).SetValue(ReflectValue(v))
+		}
+	}
+
+	// OpenID Configuration
+	resp, err = http.Get(baseEndpoint + "/.well-known/openid-configuration")
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return
+	}
+
+	body, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	var openIDConfig map[string]interface{}
+	if err := json.Unmarshal(body, &openIDConfig); err != nil {
+		return
+	}
+
+	// Update keys
+	for k, v := range openIDConfig {
+		if !section.HasKey(k) {
+			section.NewKey(k, ReflectValue(v))
+		} else {
+			section.Key(k).SetValue(ReflectValue(v))
+		}
+	}
+
+	// Update timestamp
+	section.Key(UpdatedEnvKey).SetValue(time.Now().Format(time.RFC3339))
+	SaveIni(cfg)
 }

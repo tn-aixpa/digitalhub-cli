@@ -6,6 +6,9 @@ const (
 	configFile         = "config.json"
 	ApiLevelKey        = "dhcore_api_level"
 	UpdatedEnvKey      = "updated_environment"
+	DhCoreEndpoint     = "dhcore_endpoint"
+
+	outdatedAfterHours = 1
 
 	// API level the current version of the CLI was developed for
 	MinApiLevel = 10

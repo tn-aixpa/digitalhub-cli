@@ -14,23 +14,6 @@ import (
 	"time"
 )
 
-type OpenIDConfig struct {
-	AuthorizationEndpoint string   `json:"authorization_endpoint" ini:"authorization_endpoint"`
-	TokenEndpoint         string   `json:"token_endpoint" ini:"token_endpoint"`
-	Issuer                string   `json:"issuer" ini:"issuer"`
-	ClientID              string   `json:"dhcore_client_id" ini:"client_id"`
-	Scope                 []string `json:"scopes_supported" ini:"scopes_supported"`
-	AccessToken           string   `json:"access_token" ini:"access_token"`
-	RefreshToken          string   `json:"refresh_token" ini:"refresh_token"`
-}
-
-type CoreConfig struct {
-	Name     string `json:"dhcore_name" ini:"dhcore_name"`
-	Issuer   string `json:"issuer" ini:"issuer"`
-	Version  string `json:"dhcore_version" ini:"dhcore_version"`
-	ClientID string `json:"dhcore_client_id" ini:"client_id"`
-}
-
 func init() {
 	RegisterCommand(&Command{
 		Name:        "register",
@@ -114,7 +97,7 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	log.Printf("'%v' registered.\n", environment)
 }
 
-func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
+func fetchConfig(configURL string) (map[string]interface{}, utils.CoreConfig) {
 	resp, err := http.Get(configURL)
 	if err != nil {
 		log.Printf("Error fetching core configuration: %v\n", err)
@@ -139,7 +122,7 @@ func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 		os.Exit(1)
 	}
 
-	var config CoreConfig
+	var config utils.CoreConfig
 	if err := json.Unmarshal(body, &config); err != nil {
 		log.Printf("Error parsing core configuration: %v\n", err)
 		os.Exit(1)
@@ -148,7 +131,7 @@ func fetchConfig(configURL string) (map[string]interface{}, CoreConfig) {
 	return res, config
 }
 
-func fetchOpenIDConfig(configURL string) OpenIDConfig {
+func fetchOpenIDConfig(configURL string) utils.OpenIDConfig {
 	resp, err := http.Get(configURL)
 	if err != nil {
 		log.Printf("Error fetching OpenID configuration: %v\n", err)
@@ -167,7 +150,7 @@ func fetchOpenIDConfig(configURL string) OpenIDConfig {
 		os.Exit(1)
 	}
 
-	var config OpenIDConfig
+	var config utils.OpenIDConfig
 	if err := json.Unmarshal(body, &config); err != nil {
 		log.Printf("Error parsing OpenID configuration: %v\n", err)
 		os.Exit(1)

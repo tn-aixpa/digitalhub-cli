@@ -27,7 +27,7 @@ func init() {
 func refreshHandler(args []string, fs *flag.FlagSet) {
 	// Read config from ini file
 	cfg, section := loadIniConfig(args)
-	openIDConfig := new(OpenIDConfig)
+	openIDConfig := new(utils.OpenIDConfig)
 	section.MapTo(openIDConfig)
 
 	data := url.Values{}

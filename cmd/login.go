@@ -46,6 +46,7 @@ func init() {
 func loginHandler(args []string, fs *flag.FlagSet) {
 	// Read config from ini file
 	cfg, section := loadIniConfig(args)
+	utils.CheckUpdateEnvironment(cfg, section)
 	utils.CheckApiLevel(section, utils.LoginMin, utils.LoginMax)
 
 	// Generate PKCE values
@@ -108,7 +109,7 @@ func generateRandomStringWithCharset(length int, charset string) string {
 }
 
 func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier string) {
-	openIDConfig := new(OpenIDConfig)
+	openIDConfig := new(utils.OpenIDConfig)
 	section.MapTo(openIDConfig)
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +184,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 }
 
 func buildAuthURL(section *ini.Section, codeChallenge, state string) string {
-	openIDConfig := new(OpenIDConfig)
+	openIDConfig := new(utils.OpenIDConfig)
 	section.MapTo(openIDConfig)
 
 	v := url.Values{}

@@ -43,7 +43,8 @@ func listHandler(args []string, fs *flag.FlagSet) {
 
 	// Load environment and check API level requirements
 	environment := fs.Lookup("e").Value.String()
-	_, section := loadIniConfig([]string{environment})
+	cfg, section := loadIniConfig([]string{environment})
+	utils.CheckUpdateEnvironment(cfg, section)
 	utils.CheckApiLevel(section, utils.ListMin, utils.ListMax)
 
 	format := utils.TranslateFormat(fs.Lookup("o").Value.String())

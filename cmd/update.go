@@ -34,7 +34,8 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 
 	// Load environment and check API level requirements
 	environment := fs.Lookup("e").Value.String()
-	_, section := loadIniConfig([]string{environment})
+	cfg, section := loadIniConfig([]string{environment})
+	utils.CheckUpdateEnvironment(cfg, section)
 	utils.CheckApiLevel(section, utils.UpdateMin, utils.UpdateMax)
 
 	project := fs.Lookup("p").Value.String()
