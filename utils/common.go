@@ -206,7 +206,6 @@ func TranslateEndpoint(resource string) string {
 
 	log.Printf("Resource '%v' is not supported or the configuration file is invalid. Check or edit supported resources in %v.\n", resource, configFile)
 	os.Exit(1)
-
 	return ""
 }
 
@@ -264,94 +263,4 @@ func CheckApiLevel(section *ini.Section, min int, max int) {
 		log.Printf("ERROR: API level %v is not within the supported interval for this command: %v\n", apiLevel, supportedInterval)
 		os.Exit(1)
 	}
-}
-
-func CheckUpdateEnvironment(cfg *ini.File, section *ini.Section) {
-	doUpdate := false
-
-	if section.HasKey(UpdatedEnvKey) {
-		updated, err := time.Parse(time.RFC3339, section.Key(UpdatedEnvKey).Value())
-		if err != nil {
-			doUpdate = true
-		} else {
-			if updated.Add(outdatedAfterHours * time.Hour).Before(time.Now()) {
-				doUpdate = true
-			}
-		}
-	}
-
-	if doUpdate {
-		updateEnvironment(cfg, section)
-	}
-}
-
-func updateEnvironment(cfg *ini.File, section *ini.Section) {
-	baseEndpoint := section.Key(DhCoreEndpoint).Value()
-	if baseEndpoint == "" {
-		return
-	}
-
-	// Configuration
-	resp, err := http.Get(baseEndpoint + "/.well-known/configuration")
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	var config map[string]interface{}
-	if err := json.Unmarshal(body, &config); err != nil {
-		return
-	}
-
-	// Update keys
-	for k, v := range config {
-		if !section.HasKey(k) {
-			section.NewKey(k, ReflectValue(v))
-		} else {
-			section.Key(k).SetValue(ReflectValue(v))
-		}
-	}
-
-	// OpenID Configuration
-	resp, err = http.Get(baseEndpoint + "/.well-known/openid-configuration")
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return
-	}
-
-	body, err = io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	var openIDConfig map[string]interface{}
-	if err := json.Unmarshal(body, &openIDConfig); err != nil {
-		return
-	}
-
-	// Update keys
-	for k, v := range openIDConfig {
-		if !section.HasKey(k) {
-			section.NewKey(k, ReflectValue(v))
-		} else {
-			section.Key(k).SetValue(ReflectValue(v))
-		}
-	}
-
-	// Update timestamp
-	section.Key(UpdatedEnvKey).SetValue(time.Now().Format(time.RFC3339))
-	SaveIni(cfg)
 }
