@@ -5,11 +5,11 @@
 class Dhcli < Formula
   desc "A command-line tool for DigitalHub platform."
   homepage "https://scc-digitalhub.github.io/"
-  version "0.11.0"
+  version "0.11.1"
 
   on_macos do
-    url "https://github.com/scc-digitalhub/digitalhub-cli/releases/download/0.11.0/dhcli-darwin.tar.gz"
-    sha256 "cecb5a267608e6d839f91087bc256902cbf2e75fdbfaf957a44cd42847bffffa"
+    url "https://github.com/scc-digitalhub/digitalhub-cli/releases/download/0.11.1/dhcli-darwin.tar.gz"
+    sha256 "d60c482526210152dd262b640c835f54af5f33aba692f732e4662dd68680bb1b"
 
     def install
       bin.install "dhcli"
@@ -17,24 +17,18 @@ class Dhcli < Formula
   end
 
   on_linux do
-    if Hardware::CPU.intel?
-      if Hardware::CPU.is_64_bit?
-        url "https://github.com/scc-digitalhub/digitalhub-cli/releases/download/0.11.0/dhcli-linux-amd64.tar.gz"
-        sha256 "78e67fbe3cc8cbb77a635df36c35845ece543faa58a2ecf2eb9152d8296523a6"
-
-        def install
-          bin.install "dhcli"
-        end
+    if Hardware::CPU.intel? and Hardware::CPU.is_64_bit?
+      url "https://github.com/scc-digitalhub/digitalhub-cli/releases/download/0.11.1/dhcli-linux-amd64.tar.gz"
+      sha256 "c950fe52a7a2001af7d8771b3659b08213de7af08015a9eae0fbdd24fc7139c4"
+      def install
+        bin.install "dhcli"
       end
     end
-    if Hardware::CPU.arm?
-      if Hardware::CPU.is_64_bit?
-        url "https://github.com/scc-digitalhub/digitalhub-cli/releases/download/0.11.0/dhcli-linux-arm64.tar.gz"
-        sha256 "eb4cbe6f8c8a9a99702c54cccc5575d89062451275ddeb7192c8717c0ae5627f"
-
-        def install
-          bin.install "dhcli"
-        end
+    if Hardware::CPU.arm? and Hardware::CPU.is_64_bit?
+      url "https://github.com/scc-digitalhub/digitalhub-cli/releases/download/0.11.1/dhcli-linux-arm64.tar.gz"
+      sha256 "b1a0d560bb13bd17e51f640c3c0dc58724d1504f174a1a33a15235714ee7aa68"
+      def install
+        bin.install "dhcli"
       end
     end
   end
