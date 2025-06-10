@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package utils
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -16,23 +19,6 @@ import (
 
 	"gopkg.in/ini.v1"
 )
-
-type OpenIDConfig struct {
-	AuthorizationEndpoint string   `json:"authorization_endpoint" ini:"authorization_endpoint"`
-	TokenEndpoint         string   `json:"token_endpoint" ini:"token_endpoint"`
-	Issuer                string   `json:"issuer" ini:"issuer"`
-	ClientID              string   `json:"dhcore_client_id" ini:"client_id"`
-	Scope                 []string `json:"scopes_supported" ini:"scopes_supported"`
-	AccessToken           string   `json:"access_token" ini:"access_token"`
-	RefreshToken          string   `json:"refresh_token" ini:"refresh_token"`
-}
-
-type CoreConfig struct {
-	Name     string `json:"dhcore_name" ini:"dhcore_name"`
-	Issuer   string `json:"issuer" ini:"issuer"`
-	Version  string `json:"dhcore_version" ini:"dhcore_version"`
-	ClientID string `json:"dhcore_client_id" ini:"client_id"`
-}
 
 func getIniPath() string {
 	iniPath, err := os.UserHomeDir()
@@ -263,4 +249,38 @@ func CheckApiLevel(section *ini.Section, min int, max int) {
 		log.Printf("ERROR: API level %v is not within the supported interval for this command: %v\n", apiLevel, supportedInterval)
 		os.Exit(1)
 	}
+}
+
+func GetStringValue(m map[string]interface{}, key string) string {
+	if v, ok := m[key]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+
+	return ""
+}
+
+func FetchConfig(configURL string) (map[string]interface{}, error) {
+	resp, err := http.Get(configURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("Core returned a non-200 status code: %v", resp.Status))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(body, &config); err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }

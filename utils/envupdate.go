@@ -1,9 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package utils
 
 import (
-	"encoding/json"
-	"io"
-	"net/http"
 	"time"
 
 	"gopkg.in/ini.v1"
@@ -25,53 +24,38 @@ func updateEnvironment(cfg *ini.File, section *ini.Section) {
 	}
 
 	// Configuration
-	config, err := doGet(baseEndpoint + "/.well-known/configuration")
+	config, err := FetchConfig(baseEndpoint + "/.well-known/configuration")
 	if err != nil {
 		return
 	}
-	updateKeys(section, config)
+	for k, v := range config {
+		newKey := k
+		if newKey == ClientIdKey {
+			newKey = "client_id"
+		}
+		UpdateKey(section, newKey, v)
+	}
 
 	// OpenID Configuration
-	openIdConfig, err := doGet(baseEndpoint + "/.well-known/openid-configuration")
+	openIdConfig, err := FetchConfig(baseEndpoint + "/.well-known/openid-configuration")
 	if err != nil {
 		return
 	}
-	updateKeys(section, openIdConfig)
+	for _, k := range OpenIdFields {
+		if v, ok := openIdConfig[k]; ok && v != "" {
+			UpdateKey(section, k, v)
+		}
+	}
 
 	// Update timestamp
 	section.Key(UpdatedEnvKey).SetValue(time.Now().Format(time.RFC3339))
 	SaveIni(cfg)
 }
 
-func doGet(url string) (map[string]interface{}, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var config map[string]interface{}
-	if err := json.Unmarshal(body, &config); err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-func updateKeys(section *ini.Section, config map[string]interface{}) {
-	for k, v := range config {
-		if !section.HasKey(k) {
-			section.NewKey(k, ReflectValue(v))
-		} else {
-			section.Key(k).SetValue(ReflectValue(v))
-		}
+func UpdateKey(section *ini.Section, k string, v interface{}) {
+	if !section.HasKey(k) {
+		section.NewKey(k, ReflectValue(v))
+	} else {
+		section.Key(k).SetValue(ReflectValue(v))
 	}
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -109,9 +111,6 @@ func generateRandomStringWithCharset(length int, charset string) string {
 }
 
 func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier string) {
-	openIDConfig := new(utils.OpenIDConfig)
-	section.MapTo(openIDConfig)
-
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		authCode := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
@@ -129,7 +128,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 
 		slog.Debug("Authorization code received correctly.", "Code", authCode, "State", state)
 
-		tokenResponse := exchangeAuthCode(openIDConfig.TokenEndpoint, openIDConfig.ClientID, codeVerifier, authCode)
+		tokenResponse := exchangeAuthCode(section.Key("token_endpoint").Value(), section.Key("client_id").Value(), codeVerifier, authCode)
 		if tokenResponse == nil {
 			http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
 			return
@@ -160,13 +159,11 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 				}
 			}
 		}
-		openIDConfig.AccessToken = responseJson["access_token"].(string)
-		refreshToken, ok := responseJson["refresh_token"]
-		if ok {
-			openIDConfig.RefreshToken = refreshToken.(string)
+		utils.UpdateKey(section, "access_token", responseJson["access_token"].(string))
+		if refreshToken, ok := responseJson["refresh_token"]; ok {
+			utils.UpdateKey(section, "refresh_token", refreshToken.(string))
 		}
 
-		section.ReflectFrom(&openIDConfig)
 		utils.SaveIni(cfg)
 		log.Println("Login successful!")
 
@@ -184,20 +181,17 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier strin
 }
 
 func buildAuthURL(section *ini.Section, codeChallenge, state string) string {
-	openIDConfig := new(utils.OpenIDConfig)
-	section.MapTo(openIDConfig)
-
 	v := url.Values{}
 	v.Set("response_type", "code")
-	v.Set("client_id", openIDConfig.ClientID)
+	v.Set("client_id", section.Key("client_id").Value())
 	v.Set("redirect_uri", redirectURI)
 	v.Set("code_challenge", codeChallenge)
 	v.Set("code_challenge_method", "S256")
 	v.Set("state", state)
 
-	scopesString := strings.Join(openIDConfig.Scope[:], "%20")
+	scopesString := strings.ReplaceAll(section.Key("scopes_supported").Value(), ",", "%20")
 
-	return fmt.Sprintf("%s?%s&scope=%s", openIDConfig.AuthorizationEndpoint, v.Encode(), scopesString)
+	return fmt.Sprintf("%s?%s&scope=%s", section.Key("authorization_endpoint").Value(), v.Encode(), scopesString)
 }
 
 func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []byte {

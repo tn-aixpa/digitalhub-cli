@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -27,15 +29,13 @@ func init() {
 func refreshHandler(args []string, fs *flag.FlagSet) {
 	// Read config from ini file
 	cfg, section := loadIniConfig(args)
-	openIDConfig := new(utils.OpenIDConfig)
-	section.MapTo(openIDConfig)
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
-	data.Set("client_id", openIDConfig.ClientID)
-	data.Set("refresh_token", openIDConfig.RefreshToken)
+	data.Set("client_id", section.Key("client_id").Value())
+	data.Set("refresh_token", section.Key("refresh_token").Value())
 
-	resp, err := http.Post(openIDConfig.TokenEndpoint, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+	resp, err := http.Post(section.Key("token_endpoint").Value(), "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	if err != nil {
 		log.Printf("Error refreshing token: %v\n", err)
 		os.Exit(1)
@@ -55,10 +55,9 @@ func refreshHandler(args []string, fs *flag.FlagSet) {
 
 	var responseJson map[string]interface{}
 	json.Unmarshal(body, &responseJson)
-	openIDConfig.AccessToken = responseJson["access_token"].(string)
-	openIDConfig.RefreshToken = responseJson["refresh_token"].(string)
+	utils.UpdateKey(section, "access_token", responseJson["access_token"].(string))
+	utils.UpdateKey(section, "refresh_token", responseJson["refresh_token"].(string))
 
-	section.ReflectFrom(&openIDConfig)
 	utils.SaveIni(cfg)
 	log.Printf("Token refreshed.\n")
 }

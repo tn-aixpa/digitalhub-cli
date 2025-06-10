@@ -1,13 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
 	"bufio"
 	"dhcli/utils"
-	"encoding/json"
 	"flag"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -37,19 +36,23 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 		endpoint += "/"
 	}
 
-	// Read or initialize ini file
 	cfg := utils.LoadIni(true)
 
-	//collect to map+struct
-	res, coreConfig := fetchConfig(endpoint + ".well-known/configuration")
+	// Configuration
+	config, err := utils.FetchConfig(endpoint + ".well-known/configuration")
+	if err != nil {
+		log.Printf("Error while fetching configuration: %v\n", err)
+		os.Exit(1)
+	}
 	if environment == "" || environment == "null" {
-		environment = coreConfig.Name
+		environment = utils.GetStringValue(config, "dhcore_name")
 		if environment == "" {
 			log.Println("Failed to register: environment name not specified and not defined in core's configuration.")
 			os.Exit(1)
 		}
 	}
 
+	// If section already exists, all existing keys have to be removed
 	if cfg.HasSection(environment) {
 		log.Printf("Section '%v' already exists, will be overwritten.\n", environment)
 	}
@@ -57,26 +60,18 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	for _, k := range section.Keys() {
 		section.DeleteKey(k.Name())
 	}
-	section.ReflectFrom(&coreConfig)
 
-	// Fetch OpenID configuration
-	openIDConfig := fetchOpenIDConfig(endpoint + ".well-known/openid-configuration")
-	openIDConfig.ClientID = coreConfig.ClientID
-	section.ReflectFrom(&openIDConfig)
-
-	apiLevel := ""
-
-	for k, v := range res {
-		//add keys
-		if !section.HasKey(k) && k != "dhcore_client_id" {
-			section.NewKey(k, utils.ReflectValue(v))
+	// Copy keys and values
+	for k, v := range config {
+		newKey := k
+		if newKey == utils.ClientIdKey {
+			newKey = "client_id"
 		}
-
-		if k == utils.ApiLevelKey {
-			apiLevel = v.(string)
-		}
+		section.NewKey(newKey, utils.ReflectValue(v))
 	}
 
+	// Check API level compatibility
+	apiLevel := utils.GetStringValue(config, utils.ApiLevelKey)
 	apiLevelInt, err := strconv.Atoi(apiLevel)
 	if err != nil {
 		log.Println("WARNING: Registering an environment that may be incompatible with this version of the CLI: API level is not specified or cannot be read as integer.")
@@ -84,6 +79,21 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 		log.Printf("WARNING: Registering an environment with an API level (%v) that does not meet the CLI's minimum requirement (%v). Some commands may not work correctly.\n", apiLevelInt, utils.MinApiLevel)
 	}
 
+	// OpenID configuration
+	openIdConfig, err := utils.FetchConfig(endpoint + ".well-known/openid-configuration")
+	if err != nil {
+		log.Printf("Error while fetching OpenID configuration: %v\n", err)
+		os.Exit(1)
+	}
+	for _, k := range utils.OpenIdFields {
+		var v interface{} = ""
+		if val, ok := openIdConfig[k]; ok {
+			v = val
+		}
+		section.NewKey(k, utils.ReflectValue(v))
+	}
+
+	// Timestamp
 	section.NewKey(utils.UpdatedEnvKey, time.Now().Format(time.RFC3339))
 
 	// Check for default env
@@ -95,68 +105,6 @@ func registerHandler(args []string, fs *flag.FlagSet) {
 	// gitignoreAddIniFile()
 	utils.SaveIni(cfg)
 	log.Printf("'%v' registered.\n", environment)
-}
-
-func fetchConfig(configURL string) (map[string]interface{}, utils.CoreConfig) {
-	resp, err := http.Get(configURL)
-	if err != nil {
-		log.Printf("Error fetching core configuration: %v\n", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		log.Printf("Core responded with error %v\n", resp.Status)
-		os.Exit(1)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading core configuration response: %v\n", err)
-		os.Exit(1)
-	}
-
-	var res map[string]interface{}
-	if err := json.Unmarshal(body, &res); err != nil {
-		log.Printf("Error parsing core configuration: %v\n", err)
-		os.Exit(1)
-	}
-
-	var config utils.CoreConfig
-	if err := json.Unmarshal(body, &config); err != nil {
-		log.Printf("Error parsing core configuration: %v\n", err)
-		os.Exit(1)
-	}
-
-	return res, config
-}
-
-func fetchOpenIDConfig(configURL string) utils.OpenIDConfig {
-	resp, err := http.Get(configURL)
-	if err != nil {
-		log.Printf("Error fetching OpenID configuration: %v\n", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		log.Printf("Core responded with error %v\n", resp.Status)
-		os.Exit(1)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading OpenID configuration response: %v\n", err)
-		os.Exit(1)
-	}
-
-	var config utils.OpenIDConfig
-	if err := json.Unmarshal(body, &config); err != nil {
-		log.Printf("Error parsing OpenID configuration: %v\n", err)
-		os.Exit(1)
-	}
-
-	return config
 }
 
 func gitignoreAddIniFile() {
