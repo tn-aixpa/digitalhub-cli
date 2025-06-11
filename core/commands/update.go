@@ -1,0 +1,63 @@
+package commands
+
+import (
+	"dhcli/core"
+	"dhcli/core/flags"
+	"errors"
+	"log"
+
+	"dhcli/service"
+	"github.com/spf13/cobra"
+)
+
+//RegisterCommand(&Command{
+//Name:        "update",
+//Description: "dhcli update [-e <environment> -p <project>] -f <file> <resource> <id>",
+//SetupFlags: func (fs *flag.FlagSet) {
+//fs.String("e", "", "environment")
+//fs.String("p", "", "project")
+//fs.String("f", "", "file")
+//},
+//Handler: updateHandler,
+//})
+
+var (
+	fileFlag string
+)
+
+var updateCmd = &cobra.Command{
+	Use:   "update <resource> [id]",
+	Short: "Updates a specific resource using data from a YAML file",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 || len(args) > 2 {
+			return errors.New("requires 1 or 2 arguments: <resource> [<id>]")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		id := ""
+		if len(args) > 1 {
+			id = args[1]
+		}
+
+		err := service.UpdateHandler(
+			flags.EnvFlag,
+			flags.ProjectFlag,
+			fileFlag,
+			args[0],
+			id,
+			args[1:])
+
+		if err != nil {
+			log.Fatalf("Get failed: %v", err)
+		}
+	},
+}
+
+func init() {
+	flags.AddCommonFlags(updateCmd, "env", "project")
+
+	// Add file flags
+	updateCmd.Flags().StringVarP(&fileFlag, "file", "f", "", "path to the YAML file containing the resource data to be updated")
+	core.RegisterCommand(updateCmd)
+}

@@ -42,7 +42,7 @@ var downloadCmd = &cobra.Command{
 func init() {
 	flags.AddCommonFlags(downloadCmd)
 
-	// override output common flag in this case out is a new filename or directory nam
+	// override output common flag in this case out is a new filename or directory name
 	flag := downloadCmd.Flags().Lookup("out")
 
 	if flag != nil {
