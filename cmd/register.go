@@ -25,7 +25,7 @@ import (
 //}
 
 var (
-	registerEnv string
+	envFlag string
 )
 
 var registerCmd = &cobra.Command{
@@ -35,13 +35,13 @@ var registerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		endpoint := args[0]
 
-		if err := service.RegisterEnvironment(registerEnv, endpoint); err != nil {
+		if err := service.RegisterEnvironment(envFlag, endpoint); err != nil {
 			log.Fatalf("Registration failed: %v", err)
 		}
 	},
 }
 
 func init() {
-	registerCmd.Flags().StringVarP(&registerEnv, "env", "e", "", "Environment name")
+	registerCmd.Flags().StringVarP(&envFlag, "env", "e", "", "environment")
 	RegisterCommand(registerCmd)
 }

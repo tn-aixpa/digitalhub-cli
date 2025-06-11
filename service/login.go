@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -38,10 +39,19 @@ func Login(env string) error {
 	startAuthCodeServer(cfg, section, cv)
 
 	authURL := buildAuthURL(section, cc, generatedState)
-	fmt.Println("Visit this URL to authenticate:")
+	// Log più leggibile in terminale
+	fmt.Println("──────────────────────────────────────────────")
+	fmt.Println("🔐  Login: Visit this URL to authenticate:")
+	fmt.Println("──────────────────────────────────────────────")
 	fmt.Println(authURL)
+	fmt.Println("──────────────────────────────────────────────")
 	fmt.Print("Press Enter to open browser… ")
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
+
+	_, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
+	if err != nil {
+		fmt.Println("Error while authenticating...")
+		return err
+	}
 
 	if err := openBrowser(authURL); err != nil {
 		log.Printf("Error opening browser: %v", err)
@@ -100,7 +110,13 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, verifier string) {
 			return
 		}
 
-		fmt.Fprintln(w, "<h1>Login successful</h1><pre>", string(tkn), "</pre>")
+		var prettyJSON bytes.Buffer
+		if err := json.Indent(&prettyJSON, tkn, "", "  "); err != nil {
+			prettyJSON.Write(tkn) // fallback testo semplice se errore
+		}
+
+		fmt.Fprintln(w, "<h1>Login successful</h1>")
+		fmt.Fprintf(w, "<pre style=\"background:#f6f8fa;border:1px solid #ccc;padding:16px;width:800px;overflow:auto;\">%s</pre>", prettyJSON.String())
 
 		var m map[string]interface{}
 		json.Unmarshal(tkn, &m)

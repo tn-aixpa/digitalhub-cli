@@ -1,17 +1,11 @@
 package cmd
 
 import (
+	"dhcli/cmd/flags"
 	"log"
 
 	"dhcli/service"
 	"github.com/spf13/cobra"
-)
-
-var (
-	envFlag     string
-	outFlag     string
-	projectFlag string
-	nameFlag    string
 )
 
 var getCmd = &cobra.Command{
@@ -24,7 +18,15 @@ var getCmd = &cobra.Command{
 			id = args[1]
 		}
 
-		err := service.GetResource(envFlag, outFlag, projectFlag, nameFlag, args[0], id, args[1:])
+		err := service.GetResource(
+			flags.EnvFlag,
+			flags.OutFlag,
+			flags.ProjectFlag,
+			flags.NameFlag,
+			args[0],
+			id,
+			args[1:])
+
 		if err != nil {
 			log.Fatalf("Get failed: %v", err)
 		}
@@ -32,9 +34,6 @@ var getCmd = &cobra.Command{
 }
 
 func init() {
-	getCmd.Flags().StringVarP(&envFlag, "e", "e", "", "Environment")
-	getCmd.Flags().StringVarP(&outFlag, "o", "o", "short", "Output format (short, json, yaml)")
-	getCmd.Flags().StringVarP(&projectFlag, "p", "p", "", "Project")
-	getCmd.Flags().StringVarP(&nameFlag, "n", "n", "", "Name")
+	flags.AddCommonFlags(getCmd)
 	RegisterCommand(getCmd)
 }

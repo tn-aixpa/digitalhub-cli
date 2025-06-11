@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dhcli/cmd/flags"
 	"log"
 
 	"dhcli/service"
@@ -8,12 +9,8 @@ import (
 )
 
 var (
-	listEnv     string
-	listOutput  string
-	listProject string
-	listName    string
-	listKind    string
-	listState   string
+	listKind  string
+	listState string
 )
 
 var listCmd = &cobra.Command{
@@ -22,8 +19,12 @@ var listCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := service.ListResources(
-			listEnv, listOutput, listProject,
-			listName, listKind, listState,
+			flags.EnvFlag,
+			flags.OutFlag,
+			flags.ProjectFlag,
+			flags.NameFlag,
+			listKind,
+			listState,
 			args[0],
 		); err != nil {
 			log.Fatalf("List failed: %v", err)
@@ -32,12 +33,11 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	listCmd.Flags().StringVarP(&listEnv, "e", "e", "", "environment")
-	listCmd.Flags().StringVarP(&listOutput, "o", "o", "short", "output format: short|json|yaml")
-	listCmd.Flags().StringVarP(&listProject, "p", "p", "", "project")
-	listCmd.Flags().StringVarP(&listName, "n", "n", "", "name")
-	listCmd.Flags().StringVarP(&listKind, "k", "k", "", "kind")
-	listCmd.Flags().StringVarP(&listState, "s", "s", "", "state")
+	flags.AddCommonFlags(listCmd)
+
+	// Add specific command flags
+	listCmd.Flags().StringVarP(&listKind, "kind", "k", "", "kind")
+	listCmd.Flags().StringVarP(&listState, "state", "s", "", "state")
 
 	RegisterCommand(listCmd)
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dhcli/cmd/flags"
 	"dhcli/service"
 	"errors"
 	"fmt"
@@ -8,50 +9,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func DownloadCmd() *cobra.Command {
-	var env, output, project, name string
+var downloadCmd = &cobra.Command{
+	Use:   "download <resource> <id>",
+	Short: "Download a resource from the S3 aws",
+	Long:  "Download an artifact from ........................",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 || len(args) > 2 {
+			return errors.New("requires 1 or 2 arguments: <resource> [<id>]")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		resource := args[0]
+		id := ""
+		if len(args) > 1 {
+			id = args[1]
+		}
 
-	cmd := &cobra.Command{
-		Use:   "download <resource> <id>",
-		Short: "Download a resource from the S3 aws",
-		Long:  "Download an artifact from ........................",
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) < 1 || len(args) > 2 {
-				return errors.New("requires 1 or 2 arguments: <resource> [<id>]")
-			}
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			resource := args[0]
-			id := ""
-			if len(args) > 1 {
-				id = args[1]
-			}
+		opts := service.DownloadOptions{
+			Environment: flags.EnvFlag,
+			Output:      flags.OutFlag,
+			Project:     flags.ProjectFlag,
+			Name:        flags.NameFlag,
+			Resource:    resource,
+			ID:          id,
+		}
 
-			opts := service.DownloadOptions{
-				Environment: env,
-				Output:      output,
-				Project:     project,
-				Name:        name,
-				Resource:    resource,
-				ID:          id,
-			}
-
-			if err := service.DownloadFileWithOptions(opts); err != nil {
-				return fmt.Errorf("download failed: %w", err)
-			}
-			return nil
-		},
-	}
-
-	cmd.Flags().StringVarP(&env, "environment", "e", "", "environment")
-	cmd.Flags().StringVarP(&output, "output", "o", "", "output file")
-	cmd.Flags().StringVarP(&project, "project", "p", "", "project")
-	cmd.Flags().StringVarP(&name, "name", "n", "", "name")
-
-	return cmd
+		if err := service.DownloadFileWithOptions(opts); err != nil {
+			_ = fmt.Errorf("download failed: %w", err)
+		}
+	},
 }
 
 func init() {
-	RegisterCommand(DownloadCmd())
+	flags.AddCommonFlags(downloadCmd)
+	RegisterCommand(downloadCmd)
 }
