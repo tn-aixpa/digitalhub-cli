@@ -2,7 +2,7 @@ package commands
 
 import (
 	"dhcli/core"
-	"dhcli/service"
+	"dhcli/core/service"
 	"github.com/spf13/cobra"
 )
 

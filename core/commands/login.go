@@ -3,11 +3,10 @@ package commands
 
 import (
 	"dhcli/core"
+	"dhcli/core/service"
 	"log"
 
 	"github.com/spf13/cobra"
-
-	"dhcli/service"
 )
 
 var loginCmd = &cobra.Command{

@@ -3,7 +3,7 @@ package commands
 import (
 	"dhcli/core"
 	"dhcli/core/flags"
-	"dhcli/service"
+	"dhcli/core/service"
 	"errors"
 	"github.com/spf13/cobra"
 	"log"
