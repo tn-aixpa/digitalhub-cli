@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"dhcli/cmd/flags"
+	"dhcli/cmd/root"
 	"dhcli/service"
 	"errors"
 	"fmt"
@@ -53,5 +54,5 @@ func init() {
 		}
 	}
 
-	RegisterCommand(downloadCmd)
+	root.RegisterCommand(downloadCmd)
 }

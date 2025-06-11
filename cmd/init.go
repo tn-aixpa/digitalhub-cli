@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dhcli/cmd/root"
 	"log"
 
 	"dhcli/service"
@@ -26,5 +27,5 @@ var initCmd = &cobra.Command{
 
 func init() {
 	initCmd.Flags().BoolVar(&preFlag, "pre", false, "Include pre-release versions when installing")
-	RegisterCommand(initCmd)
+	root.RegisterCommand(initCmd)
 }

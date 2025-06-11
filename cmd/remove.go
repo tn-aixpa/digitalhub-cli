@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dhcli/cmd/root"
 	"dhcli/service"
 	"github.com/spf13/cobra"
 )
@@ -15,5 +16,5 @@ var removeCmd = &cobra.Command{
 }
 
 func init() {
-	RegisterCommand(removeCmd)
+	root.RegisterCommand(removeCmd)
 }

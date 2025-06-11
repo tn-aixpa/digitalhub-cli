@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dhcli/cmd/root"
 	"log"
 
 	"dhcli/service"
@@ -26,5 +27,5 @@ var registerCmd = &cobra.Command{
 
 func init() {
 	registerCmd.Flags().StringVarP(&envFlag, "env", "e", "", "environment")
-	RegisterCommand(registerCmd)
+	root.RegisterCommand(registerCmd)
 }

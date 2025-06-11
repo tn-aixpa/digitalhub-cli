@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"dhcli/cmd/root"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -27,5 +28,5 @@ var loginCmd = &cobra.Command{
 }
 
 func init() {
-	RegisterCommand(loginCmd)
+	root.RegisterCommand(loginCmd)
 }

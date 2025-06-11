@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"dhcli/cmd/flags"
+	"dhcli/cmd/root"
 	"log"
 
 	"dhcli/service"
@@ -39,5 +40,5 @@ func init() {
 	listCmd.Flags().StringVarP(&listKind, "kind", "k", "", "kind")
 	listCmd.Flags().StringVarP(&listState, "state", "s", "", "state")
 
-	RegisterCommand(listCmd)
+	root.RegisterCommand(listCmd)
 }
