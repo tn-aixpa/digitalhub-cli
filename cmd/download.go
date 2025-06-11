@@ -9,6 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	outFlag string
+)
 var downloadCmd = &cobra.Command{
 	Use:   "download <resource> <id>",
 	Short: "Download a resource from the S3 aws",
@@ -43,5 +46,18 @@ var downloadCmd = &cobra.Command{
 
 func init() {
 	flags.AddCommonFlags(downloadCmd)
+
+	// override output common flag in this case out is a new filename or directory name
+	flag := downloadCmd.Flags().Lookup("out")
+
+	if flag != nil {
+		flag.Usage = "output filename or directory"
+		flag.DefValue = "current filename or directory"
+		err := flag.Value.Set("")
+		if err != nil {
+			return
+		}
+	}
+
 	RegisterCommand(downloadCmd)
 }
