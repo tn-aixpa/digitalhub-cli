@@ -1,150 +1,88 @@
 package service
 
 import (
-	"bufio"
-	"encoding/json"
+	"dhcli/utils"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"gopkg.in/ini.v1"
-
-	"dhcli/utils"
 )
 
-func Register(endpoint string, envName string) error {
+func RegisterEnvironment(env string, endpoint string) error {
+	if endpoint == "" {
+		return fmt.Errorf("endpoint is required")
+	}
 	if !strings.HasSuffix(endpoint, "/") {
 		endpoint += "/"
 	}
 
 	cfg := utils.LoadIni(true)
 
-	res, coreConfig := fetchCoreConfig(endpoint + ".well-known/configuration")
+	// 1. Fetch core config
+	config, err := utils.FetchConfig(endpoint + ".well-known/configuration")
+	if err != nil {
+		return fmt.Errorf("fetching configuration failed: %w", err)
+	}
 
-	if envName == "" || envName == "null" {
-		envName = coreConfig.Name
-		if envName == "" {
-			return fmt.Errorf("environment name not provided and not found in core configuration")
+	if env == "" || env == "null" {
+		env = utils.GetStringValue(config, "dhcore_name")
+		if env == "" {
+			return fmt.Errorf("environment not specified and not defined in core configuration")
 		}
 	}
 
-	if cfg.HasSection(envName) {
-		log.Printf("Section '%v' already exists, will be overwritten.\n", envName)
+	// 2. Clear section if it exists
+	if cfg.HasSection(env) {
+		log.Printf("Section '%v' already exists, will be overwritten.\n", env)
 	}
-	section := cfg.Section(envName)
+	section := cfg.Section(env)
 	for _, k := range section.Keys() {
 		section.DeleteKey(k.Name())
 	}
-	section.ReflectFrom(&coreConfig)
 
-	openIDConfig := fetchOpenIDConfig(endpoint + ".well-known/openid-configuration")
-	openIDConfig.ClientID = coreConfig.ClientID
-	section.ReflectFrom(&openIDConfig)
-
-	apiLevel := ""
-	for k, v := range res {
-		if !section.HasKey(k) && k != "dhcore_client_id" {
-			section.NewKey(k, utils.ReflectValue(v))
+	// 3. Reflect config keys
+	for k, v := range config {
+		key := k
+		if key == utils.ClientIdKey {
+			key = "client_id"
 		}
-		if k == utils.ApiLevelKey {
-			apiLevel = v.(string)
-		}
+		section.NewKey(key, utils.ReflectValue(v))
 	}
 
+	// 4. Check API level
+	apiLevel := utils.GetStringValue(config, utils.ApiLevelKey)
 	apiLevelInt, err := strconv.Atoi(apiLevel)
 	if err != nil {
-		log.Println("WARNING: API level is not a valid integer.")
+		log.Println("WARNING: API level not valid or missing.")
 	} else if apiLevelInt < utils.MinApiLevel {
-		log.Printf("WARNING: API level %v is below the CLI's minimum requirement %v.\n", apiLevelInt, utils.MinApiLevel)
+		log.Printf("WARNING: API level %v < minimum required %v\n", apiLevelInt, utils.MinApiLevel)
 	}
 
+	// 5. Fetch and reflect OpenID config
+	openIdConfig, err := utils.FetchConfig(endpoint + ".well-known/openid-configuration")
+	if err != nil {
+		return fmt.Errorf("fetching OpenID configuration failed: %w", err)
+	}
+	for _, k := range utils.OpenIdFields {
+		var v interface{} = ""
+		if val, ok := openIdConfig[k]; ok {
+			v = val
+		}
+		section.NewKey(k, utils.ReflectValue(v))
+	}
+
+	// 6. Add timestamp
 	section.NewKey(utils.UpdatedEnvKey, time.Now().Format(time.RFC3339))
 
+	// 7. Set default env if missing
 	defaultSection := cfg.Section("DEFAULT")
 	if !defaultSection.HasKey(utils.CurrentEnvironment) {
-		defaultSection.NewKey(utils.CurrentEnvironment, envName)
+		defaultSection.NewKey(utils.CurrentEnvironment, env)
 	}
 
-	addIniToGitignore()
 	utils.SaveIni(cfg)
 
-	log.Printf("'%v' registered.\n", envName)
+	log.Printf("'%v' registered.\n", env)
 	return nil
-}
-
-func fetchCoreConfig(configURL string) (map[string]interface{}, CoreConfig) {
-	resp, err := http.Get(configURL)
-	if err != nil {
-		log.Fatalf("Error fetching core config: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("Core responded with status %v", resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Error reading core config response: %v", err)
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal(body, &data); err != nil {
-		log.Fatalf("Error parsing core config JSON: %v", err)
-	}
-
-	var config CoreConfig
-	if err := json.Unmarshal(body, &config); err != nil {
-		log.Fatalf("Error mapping core config: %v", err)
-	}
-
-	return data, config
-}
-
-func fetchOpenIDConfig(configURL string) OpenIDConfig {
-	resp, err := http.Get(configURL)
-	if err != nil {
-		log.Fatalf("Error fetching OpenID config: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("OpenID config error: %v", resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Error reading OpenID config: %v", err)
-	}
-
-	var config OpenIDConfig
-	if err := json.Unmarshal(body, &config); err != nil {
-		log.Fatalf("Error parsing OpenID config JSON: %v", err)
-	}
-
-	return config
-}
-
-func addIniToGitignore() {
-	const gitignorePath = "./.gitignore"
-	f, err := os.OpenFile(gitignorePath, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		log.Fatalf("Cannot open .gitignore: %v", err)
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		if scanner.Text() == utils.IniName {
-			return
-		}
-	}
-	if _, err := f.WriteString(utils.IniName + "\n"); err != nil {
-		log.Fatalf("Error writing to .gitignore: %v", err)
-	}
 }

@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package utils
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -25,40 +28,6 @@ func getIniPath() string {
 	iniPath += string(os.PathSeparator) + IniName
 
 	return iniPath
-}
-
-func LoadIniConfig(args []string) (*ini.File, *ini.Section) {
-	cfg := LoadIni(false)
-
-	sectionName := ""
-
-	if len(args) == 0 || args[0] == "" {
-		if cfg.HasSection("DEFAULT") {
-			defaultSection, err := cfg.GetSection("DEFAULT")
-			if err != nil {
-				log.Printf("Error while reading default environment: %v\n", err)
-				os.Exit(1)
-			}
-			if defaultSection.HasKey("current_environment") {
-				sectionName = defaultSection.Key("current_environment").String()
-			}
-		}
-
-		if sectionName == "" {
-			log.Println("Error: environment was not passed and default environment is not specified in ini file.")
-			os.Exit(1)
-		}
-	} else {
-		sectionName = args[0]
-	}
-
-	section, err := cfg.GetSection(sectionName)
-	if err != nil {
-		log.Printf("Failed to read section '%s': %v.\n", sectionName, err)
-		os.Exit(1)
-	}
-
-	return cfg, section
 }
 
 func LoadIni(createOnMissing bool) *ini.File {
@@ -112,7 +81,7 @@ func ReflectValue(v interface{}) string {
 }
 
 func BuildCoreUrl(section *ini.Section, project string, resource string, id string, params map[string]string) string {
-	base := section.Key("dhcore_endpoint").String() + "/api/" + section.Key("dhcore_api_version").String()
+	base := section.Key(DhCoreEndpoint).String() + "/api/" + section.Key("dhcore_api_version").String()
 	endpoint := ""
 	paramsString := ""
 	if resource != "projects" && project != "" {
@@ -202,6 +171,40 @@ func loadConfig() map[string]interface{} {
 	return config
 }
 
+func LoadIniConfig(args []string) (*ini.File, *ini.Section) {
+	cfg := LoadIni(false)
+
+	sectionName := ""
+
+	if len(args) == 0 || args[0] == "" {
+		if cfg.HasSection("DEFAULT") {
+			defaultSection, err := cfg.GetSection("DEFAULT")
+			if err != nil {
+				log.Printf("Error while reading default environment: %v\n", err)
+				os.Exit(1)
+			}
+			if defaultSection.HasKey("current_environment") {
+				sectionName = defaultSection.Key("current_environment").String()
+			}
+		}
+
+		if sectionName == "" {
+			log.Println("Error: environment was not passed and default environment is not specified in ini file.")
+			os.Exit(1)
+		}
+	} else {
+		sectionName = args[0]
+	}
+
+	section, err := cfg.GetSection(sectionName)
+	if err != nil {
+		log.Printf("Failed to read section '%s': %v.\n", sectionName, err)
+		os.Exit(1)
+	}
+
+	return cfg, section
+}
+
 func TranslateEndpoint(resource string) string {
 	config := loadConfig()
 
@@ -223,7 +226,6 @@ func TranslateEndpoint(resource string) string {
 
 	log.Printf("Resource '%v' is not supported or the configuration file is invalid. Check or edit supported resources in %v.\n", resource, configFile)
 	os.Exit(1)
-
 	return ""
 }
 
@@ -251,7 +253,7 @@ func WaitForConfirmation(msg string) {
 func PrintCommentForYaml(section *ini.Section, args []string) {
 	fmt.Printf("# Generated on: %v\n", time.Now().Round(0))
 	fmt.Printf("#   from environment: %v (core version %v)\n", section.Key("dhcore_name").String(), section.Key("dhcore_version").String())
-	fmt.Printf("#   found at: %v\n", section.Key("dhcore_endpoint").String())
+	fmt.Printf("#   found at: %v\n", section.Key(DhCoreEndpoint).String())
 	fmt.Printf("#   with parameters: %v\n", strings.Join(args, " "))
 }
 
@@ -281,4 +283,38 @@ func CheckApiLevel(section *ini.Section, min int, max int) {
 		log.Printf("ERROR: API level %v is not within the supported interval for this command: %v\n", apiLevel, supportedInterval)
 		os.Exit(1)
 	}
+}
+
+func GetStringValue(m map[string]interface{}, key string) string {
+	if v, ok := m[key]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+
+	return ""
+}
+
+func FetchConfig(configURL string) (map[string]interface{}, error) {
+	resp, err := http.Get(configURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("Core returned a non-200 status code: %v", resp.Status))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(body, &config); err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }

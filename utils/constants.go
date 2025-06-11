@@ -5,12 +5,16 @@ const (
 	CurrentEnvironment = "current_environment"
 	configFile         = "config.json"
 	ApiLevelKey        = "dhcore_api_level"
+	ClientIdKey        = "dhcore_client_id"
 	UpdatedEnvKey      = "updated_environment"
+	DhCoreEndpoint     = "dhcore_endpoint"
+
+	outdatedAfterHours = 1
 
 	// API level the current version of the CLI was developed for
 	MinApiLevel = 10
 
-	// Individual commands; 0 means no restriction
+	// API level required for individual commands; 0 means no restriction
 	LoginMin  = 10
 	LoginMax  = 0
 	CreateMin = 10
@@ -24,3 +28,5 @@ const (
 	DeleteMin = 10
 	DeleteMax = 0
 )
+
+var OpenIdFields = []string{"authorization_endpoint", "token_endpoint", "issuer", "scopes_supported", "access_token", "refresh_token"}

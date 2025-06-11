@@ -1,4 +1,3 @@
-// service/login.go
 package service
 
 import (
@@ -8,9 +7,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/ini.v1"
 	"io"
 	"log"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,8 +18,6 @@ import (
 	"slices"
 	"strings"
 
-	"gopkg.in/ini.v1"
-
 	"dhcli/utils"
 )
 
@@ -28,198 +25,147 @@ const redirectURI = "http://localhost:4000/callback"
 
 var generatedState string
 
-type OpenIDConfig struct {
-	ClientID              string   `ini:"client_id"`
-	AuthorizationEndpoint string   `ini:"authorization_endpoint"`
-	TokenEndpoint         string   `ini:"token_endpoint"`
-	Scope                 []string `delim:" " ini:"scope"`
-	AccessToken           string
-	RefreshToken          string
-}
+// Login esegue il flusso PKCE per autenticarsi
+func Login(env string) error {
+	cfg, section := loadIniCfg(env)
 
-func Login(environment string) error {
-	cfg := utils.LoadIni(false)
-
-	sectionName := environment
-	if environment == "" {
-		defaultSection, _ := cfg.GetSection("DEFAULT")
-		if defaultSection.HasKey("current_environment") {
-			sectionName = defaultSection.Key("current_environment").String()
-		}
-		if sectionName == "" {
-			return fmt.Errorf("environment not passed and no default found in ini")
-		}
-	}
-
-	section, err := cfg.GetSection(sectionName)
-	if err != nil {
-		return fmt.Errorf("failed to read section '%s': %w", sectionName, err)
-	}
-
+	utils.CheckUpdateEnvironment(cfg, section)
 	utils.CheckApiLevel(section, utils.LoginMin, utils.LoginMax)
 
-	codeVerifier, codeChallenge := generatePKCE()
-	generatedState = generateRandomString(32)
+	cv, cc := generatePKCE()
+	generatedState = randomString(32)
 
-	startAuthCodeServer(cfg, section, codeVerifier)
+	startAuthCodeServer(cfg, section, cv)
 
-	authURL := buildAuthURL(section, codeChallenge, generatedState)
-	log.Println("The following URL will be opened in your browser to authenticate:")
-	log.Println(authURL)
-	log.Println("Press enter to continue...")
-	_, _ = bufio.NewReader(os.Stdin).ReadBytes('\n')
+	authURL := buildAuthURL(section, cc, generatedState)
+	fmt.Println("Visit this URL to authenticate:")
+	fmt.Println(authURL)
+	fmt.Print("Press Enter to open browser… ")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
 
 	if err := openBrowser(authURL); err != nil {
-		log.Printf("Error opening browser: %v\n", err)
+		log.Printf("Error opening browser: %v", err)
 	}
 
-	select {}
+	select {} // blocca finché il server non chiude l'app
 }
 
-func generatePKCE() (string, string) {
-	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-	const length = 64
-
-	codeVerifier := generateRandomStringWithCharset(length, charset)
-	hash := sha256.Sum256([]byte(codeVerifier))
-	codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
-
-	return codeVerifier, codeChallenge
+func loadIniCfg(env string) (*ini.File, *ini.Section) {
+	return utils.LoadIniConfig([]string{env})
 }
 
-func generateRandomString(length int) string {
-	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	return generateRandomStringWithCharset(length, charset)
+func generatePKCE() (verifier, challenge string) {
+	const cs = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+	verifier = randomStringCharset(64, cs)
+	h := sha256.Sum256([]byte(verifier))
+	challenge = base64.RawURLEncoding.EncodeToString(h[:])
+	return
 }
 
-func generateRandomStringWithCharset(length int, charset string) string {
-	result := make([]byte, length)
-	for i := range result {
-		randomByte := make([]byte, 1)
-		_, _ = rand.Read(randomByte)
-		result[i] = charset[randomByte[0]%byte(len(charset))]
+func randomString(n int) string {
+	return randomStringCharset(n, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+}
+
+func randomStringCharset(n int, cs string) string {
+	b := make([]byte, n)
+	for i := range b {
+		_, _ = rand.Read(b[i : i+1])
+		b[i] = cs[int(b[i])%len(cs)]
 	}
-	return string(result)
+	return string(b)
 }
 
-func startAuthCodeServer(cfg *ini.File, section *ini.Section, codeVerifier string) {
-	openIDConfig := new(OpenIDConfig)
-	section.MapTo(openIDConfig)
-
+func startAuthCodeServer(cfg *ini.File, section *ini.Section, verifier string) {
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		authCode := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
 
 		if state != generatedState {
-			http.Error(w, "Invalid state parameter", http.StatusBadRequest)
-			log.Fatalf("State mismatch: expected %s, got %s", generatedState, state)
+			http.Error(w, "Invalid state", http.StatusBadRequest)
+			log.Fatalf("State mismatch: got %q", state)
 		}
 		if authCode == "" {
-			http.Error(w, "Authorization code not received", http.StatusBadRequest)
+			http.Error(w, "Missing code", http.StatusBadRequest)
 			return
 		}
 
-		tokenResponse := exchangeAuthCode(openIDConfig.TokenEndpoint, openIDConfig.ClientID, codeVerifier, authCode)
-		if tokenResponse == nil {
-			http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
+		tkn := exchangeAuthCode(
+			section.Key("token_endpoint").String(),
+			section.Key("client_id").String(),
+			verifier,
+			authCode,
+		)
+		if tkn == nil {
+			http.Error(w, "Failed token exchange", http.StatusInternalServerError)
 			return
 		}
 
-		// Feedback HTML
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, `<div style="margin: 24px;"><h1>Authorization successful</h1><h3>You may now close this window.</h3><h3>Token response:</h3>`)
-		fmt.Fprintf(w, `<div><button onclick="navigator.clipboard.writeText(document.getElementById('resp').innerHTML)">Copy</button>`)
-		fmt.Fprintf(w, `<div id="resp" style="font-family: courier; overflow: auto; height: 320px;">%s</div></div></div>`, tokenResponse)
+		fmt.Fprintln(w, "<h1>Login successful</h1><pre>", string(tkn), "</pre>")
 
-		var responseJson map[string]interface{}
-		json.Unmarshal(tokenResponse, &responseJson)
-		for k, v := range responseJson {
+		var m map[string]interface{}
+		json.Unmarshal(tkn, &m)
+		for k, v := range m {
 			if !slices.Contains([]string{"client_id", "token_type", "id_token"}, k) {
-				val := utils.ReflectValue(v)
-				if !section.HasKey(k) {
-					section.NewKey(k, val)
-				} else {
-					section.Key(k).SetValue(val)
-				}
+				utils.UpdateKey(section, k, fmt.Sprint(v))
 			}
 		}
-
-		openIDConfig.AccessToken = responseJson["access_token"].(string)
-		if rtk, ok := responseJson["refresh_token"]; ok {
-			openIDConfig.RefreshToken = rtk.(string)
+		utils.UpdateKey(section, "access_token", fmt.Sprint(m["access_token"]))
+		if rt, ok := m["refresh_token"]; ok {
+			utils.UpdateKey(section, "refresh_token", fmt.Sprint(rt))
 		}
-
-		section.ReflectFrom(openIDConfig)
 		utils.SaveIni(cfg)
 
-		log.Println("Login successful!")
-		go func() {
-			os.Exit(0)
-		}()
+		log.Println("Login successful.")
+		go os.Exit(0)
 	})
-
-	go func() {
-		if err := http.ListenAndServe(":4000", nil); err != nil {
-			slog.Error("Error starting server", "Message", err)
-			os.Exit(1)
-		}
-	}()
+	go http.ListenAndServe(":4000", nil)
 }
 
-func buildAuthURL(section *ini.Section, codeChallenge, state string) string {
-	openIDConfig := new(OpenIDConfig)
-	section.MapTo(openIDConfig)
-
-	v := url.Values{}
-	v.Set("response_type", "code")
-	v.Set("client_id", openIDConfig.ClientID)
-	v.Set("redirect_uri", redirectURI)
-	v.Set("code_challenge", codeChallenge)
-	v.Set("code_challenge_method", "S256")
-	v.Set("state", state)
-
-	scopesString := strings.Join(openIDConfig.Scope, "%20")
-	return fmt.Sprintf("%s?%s&scope=%s", openIDConfig.AuthorizationEndpoint, v.Encode(), scopesString)
-}
-
-func exchangeAuthCode(tokenEndpoint, clientID, codeVerifier, authCode string) []byte {
-	data := url.Values{}
-	data.Set("grant_type", "authorization_code")
-	data.Set("client_id", clientID)
-	data.Set("code_verifier", codeVerifier)
-	data.Set("code", authCode)
-	data.Set("redirect_uri", redirectURI)
-
-	resp, err := http.Post(tokenEndpoint, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+func exchangeAuthCode(tokenURL, clientID, verifier, code string) []byte {
+	v := url.Values{
+		"grant_type":    {"authorization_code"},
+		"client_id":     {clientID},
+		"code_verifier": {verifier},
+		"code":          {code},
+		"redirect_uri":  {redirectURI},
+	}
+	resp, err := http.PostForm(tokenURL, v)
 	if err != nil {
-		slog.Error("Error exchanging code for token", "Message", err)
+		log.Printf("Token request error: %v", err)
 		return nil
 	}
 	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error("Error reading token response", "Message", err)
-		return nil
-	}
-
 	if resp.StatusCode != http.StatusOK {
-		slog.Error("Token exchange failed", "Status", resp.Status, "Body", string(body))
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Token error %s: %s", resp.Status, body)
 		return nil
 	}
-
-	return body
+	tkn, _ := io.ReadAll(resp.Body)
+	return tkn
 }
 
-func openBrowser(url string) error {
+func buildAuthURL(section *ini.Section, chal, state string) string {
+	v := url.Values{
+		"response_type":         {"code"},
+		"client_id":             {section.Key("client_id").String()},
+		"redirect_uri":          {redirectURI},
+		"code_challenge":        {chal},
+		"code_challenge_method": {"S256"},
+		"state":                 {state},
+	}
+	scope := strings.ReplaceAll(section.Key("scopes_supported").String(), ",", "%20")
+	return section.Key("authorization_endpoint").String() + "?" + v.Encode() + "&scope=" + scope
+}
+
+func openBrowser(u string) error {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", u)
 	case "darwin":
-		cmd = exec.Command("open", url)
+		cmd = exec.Command("open", u)
 	default:
-		cmd = exec.Command("xdg-open", url)
+		cmd = exec.Command("xdg-open", u)
 	}
 	return cmd.Start()
 }

@@ -13,8 +13,8 @@ func DownloadCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "download <resource> <id>",
-		Short: "Download a resource from the cloud",
-		Long:  "dhcli download [-e <environment> -o <output> -p <project> -n <name>] <resource> <id>]",
+		Short: "Download a resource from the S3 aws",
+		Long:  "Download an artifact from ........................",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 || len(args) > 2 {
 				return errors.New("requires 1 or 2 arguments: <resource> [<id>]")
