@@ -12,35 +12,25 @@ import (
 	"log"
 )
 
-type DownloadOptions struct {
-	Environment string
-	Output      string
-	Project     string
-	Name        string
-	Resource    string
-	ID          string
-}
+func DownloadFileWithOptions(env, output, project, name, resource, id string, originalArgs []string) error {
+	translateEndpoint := utils.TranslateEndpoint(resource)
 
-func DownloadFileWithOptions(opts DownloadOptions) error {
-	resource := utils.TranslateEndpoint(opts.Resource)
-	id := opts.ID
-
-	if resource != "projects" && opts.Project == "" {
+	if translateEndpoint != "projects" && project == "" {
 		return errors.New("project is mandatory when performing this operation on resources other than projects")
 	}
 
 	params := map[string]string{}
 	if id == "" {
-		if opts.Name == "" {
+		if name == "" {
 			return errors.New("you must specify id or name")
 		}
-		params["name"] = opts.Name
+		params["name"] = name
 		params["versions"] = "latest"
 	}
 
-	_, section := utils.LoadIniConfig([]string{opts.Environment})
+	_, section := utils.LoadIniConfig([]string{env})
 	method := "GET"
-	url := utils.BuildCoreUrl(section, opts.Project, resource, id, params)
+	url := utils.BuildCoreUrl(section, project, translateEndpoint, id, params)
 	req := utils.PrepareRequest(method, url, nil, section.Key("access_token").String())
 	body, err := utils.DoRequest(req)
 

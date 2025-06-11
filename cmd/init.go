@@ -11,7 +11,7 @@ var preFlag bool
 
 var initCmd = &cobra.Command{
 	Use:   "init [<environment>]",
-	Short: "Installs DigitalHub Python packages for an environment",
+	Short: "Install digitalHub python packages for an environment",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		env := ""

@@ -9,9 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	outFlag string
-)
 var downloadCmd = &cobra.Command{
 	Use:   "download <resource> <id>",
 	Short: "Download a resource from the S3 aws",
@@ -23,22 +20,19 @@ var downloadCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		resource := args[0]
 		id := ""
 		if len(args) > 1 {
 			id = args[1]
 		}
 
-		opts := service.DownloadOptions{
-			Environment: flags.EnvFlag,
-			Output:      flags.OutFlag,
-			Project:     flags.ProjectFlag,
-			Name:        flags.NameFlag,
-			Resource:    resource,
-			ID:          id,
-		}
-
-		if err := service.DownloadFileWithOptions(opts); err != nil {
+		if err := service.DownloadFileWithOptions(
+			flags.EnvFlag,
+			flags.OutFlag,
+			flags.ProjectFlag,
+			flags.NameFlag,
+			args[0],
+			id,
+			args[1:]); err != nil {
 			_ = fmt.Errorf("download failed: %w", err)
 		}
 	},
@@ -47,7 +41,7 @@ var downloadCmd = &cobra.Command{
 func init() {
 	flags.AddCommonFlags(downloadCmd)
 
-	// override output common flag in this case out is a new filename or directory name
+	// override output common flag in this case out is a new filename or directory nam
 	flag := downloadCmd.Flags().Lookup("out")
 
 	if flag != nil {

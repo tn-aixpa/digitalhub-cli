@@ -10,7 +10,7 @@ import (
 
 var getCmd = &cobra.Command{
 	Use:   "get <resource> [id]",
-	Short: "Retrieve a DigitalHub resource",
+	Short: "Retrieve a digitalHub resource",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		id := ""
