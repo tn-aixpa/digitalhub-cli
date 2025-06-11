@@ -11,7 +11,7 @@ import (
 
 var loginCmd = &cobra.Command{
 	Use:   "login [environment]",
-	Short: "login to a given environment",
+	Short: "Login to a given environment",
 	Long:  "Authenticate the user using OAuth2 PKCE flow with the specified environment.",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
