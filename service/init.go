@@ -12,35 +12,42 @@ import (
 	"dhcli/utils"
 )
 
-func InitEnvironment(env string, pre bool) error {
-	// Check Python version
-	versionOutput, err := exec.Command("python3", "--version").Output()
+// InitEnvironment verifica Python, conferma l'utente e installa i pacchetti
+func InitEnvironment(env string, includePre bool) error {
+	// 1. Controllo versione Python
+	out, err := exec.Command("python3", "--version").Output()
 	if err != nil {
-		return fmt.Errorf("python3 not installed or not in PATH: %w", err)
+		return fmt.Errorf("python3 non trovato: %w", err)
+	}
+	if !supportedPythonVersion(string(out)) {
+		return fmt.Errorf("versione Python non supportata (serve 3.9–3.12): %s", strings.TrimSpace(string(out)))
 	}
 
-	if !supportedPythonVersion(string(versionOutput)) {
-		return fmt.Errorf("unsupported Python version (must be 3.9 <= v <= 3.12): %s", string(versionOutput))
-	}
-
+	// 2. Legge la configurazione dall’ini
 	_, section := utils.LoadIniConfig([]string{env})
+	// La tua funzione mantiene lo stesso comportamento: richiama LoadIniConfig
 
-	apiVersionMinor := section.Key("dhcore_version").String()
-	versionParts := strings.SplitN(apiVersionMinor, ".", 3)
-	if len(versionParts) >= 2 {
-		apiVersionMinor = strings.Join(versionParts[:2], ".")
+	// 3. Estrae la minor version
+	apiVer := section.Key("dhcore_version").String()
+	parts := strings.SplitN(apiVer, ".", 3)
+	if len(parts) > 2 {
+		apiVer = parts[0] + "." + parts[1]
 	}
 
-	// Prompt user
-	if !confirm(fmt.Sprintf("Newest patch version of DigitalHub %s will be installed, continue? Y/n", apiVersionMinor)) {
+	// 4. Prompt di conferma
+	yes := promptYesNo(fmt.Sprintf("Newest patch version of digitalhub %v will be installed, continue? Y/n", apiVer))
+	if !yes {
 		log.Println("Installation cancelled by user.")
 		return nil
 	}
 
-	pipSpecifier := "~=" + apiVersionMinor + ".0"
+	// 5. Costruisce l’opzione pip
+	pipSpec := "~=" + apiVer + ".0"
+
+	// 6. Installa ogni pacchetto, nel formato originale
 	for _, pkg := range packageList() {
-		args := []string{"-m", "pip", "install", pkg + pipSpecifier}
-		if pre {
+		args := []string{"-m", "pip", "install", pkg + pipSpec}
+		if includePre {
 			args = append(args, "--pre")
 		}
 
@@ -48,7 +55,7 @@ func InitEnvironment(env string, pre bool) error {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		log.Printf("Installing %s...\n", pkg+pipSpecifier)
+		log.Printf("Installing %s...", pkg+pipSpec)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("pip install failed for %s: %w", pkg, err)
 		}
@@ -58,53 +65,42 @@ func InitEnvironment(env string, pre bool) error {
 	return nil
 }
 
-func supportedPythonVersion(version string) bool {
-	version = strings.TrimSpace(version)
-	if !strings.HasPrefix(version, "Python ") {
-		return false
+func supportedPythonVersion(ver string) bool {
+	ver = strings.TrimSpace(ver)
+	if idx := strings.Index(ver, " "); idx >= 0 && len(ver) > idx+1 {
+		ver = ver[idx+1:]
 	}
-
-	ver := strings.TrimPrefix(version, "Python ")
 	parts := strings.Split(ver, ".")
 	if len(parts) < 2 {
 		return false
 	}
-
-	major, err := strconv.Atoi(parts[0])
-	if err != nil || major != 3 {
+	maj, err := strconv.Atoi(parts[0])
+	if err != nil || maj != 3 {
 		return false
 	}
-	minor, err := strconv.Atoi(parts[1])
-	if err != nil || minor < 9 || minor > 12 {
+	min, err := strconv.Atoi(parts[1])
+	if err != nil || min < 9 || min > 12 {
 		return false
 	}
-
 	return true
 }
 
-func confirm(prompt string) bool {
-	fmt.Println(prompt)
+func promptYesNo(prompt string) bool {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			log.Printf("Error reading input: %v", err)
-			os.Exit(1)
-		}
-		switch strings.ToLower(strings.TrimSpace(input)) {
-		case "y", "":
+		fmt.Println(prompt)
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(strings.ToLower(input))
+		if input == "y" || input == "" {
 			return true
-		case "n":
-			return false
-		default:
-			fmt.Print("Please answer y or n: ")
 		}
+		if input == "n" {
+			return false
+		}
+		fmt.Print("Invalid input, please type Y or n: ")
 	}
 }
 
 func packageList() []string {
-	return []string{
-		"digitalhub[full]",
-		"digitalhub-runtime-python",
-	}
+	return []string{"digitalhub[full]", "digitalhub-runtime-python"}
 }
