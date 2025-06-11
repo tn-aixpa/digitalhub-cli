@@ -21,7 +21,7 @@ var loginCmd = &cobra.Command{
 			environment = args[0]
 		}
 
-		if err := service.Login(environment); err != nil {
+		if err := service.LoginHandler(environment); err != nil {
 			log.Fatalf("Login failed: %v", err)
 		}
 	},

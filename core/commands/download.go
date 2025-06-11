@@ -26,7 +26,7 @@ var downloadCmd = &cobra.Command{
 			id = args[1]
 		}
 
-		if err := service.DownloadFileWithOptions(
+		if err := service.DownloadHandler(
 			flags.EnvFlag,
 			flags.OutFlag,
 			flags.ProjectFlag,

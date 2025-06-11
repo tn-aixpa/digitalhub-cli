@@ -17,7 +17,7 @@ import (
 	"dhcli/utils"
 )
 
-func ListResources(env, output, project, name, kind, state, resource string) error {
+func ListResourcesHandler(env, output, project, name, kind, state, resource string) error {
 	endpoint := utils.TranslateEndpoint(resource)
 
 	cfg, section := utils.LoadIniConfig([]string{env})

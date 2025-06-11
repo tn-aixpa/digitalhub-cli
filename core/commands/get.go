@@ -24,7 +24,7 @@ var getCmd = &cobra.Command{
 			id = args[1]
 		}
 
-		err := service.GetResource(
+		err := service.GetHandler(
 			flags.EnvFlag,
 			flags.OutFlag,
 			flags.ProjectFlag,

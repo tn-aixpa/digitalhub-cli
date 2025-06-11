@@ -12,10 +12,11 @@ import (
 	"log"
 )
 
-func DownloadFileWithOptions(env, output, project, name, resource, id string, originalArgs []string) error {
-	validResource := utils.TranslateEndpoint(resource)
+// TODO output
+func DownloadHandler(env, output, project, name, resource, id string, originalArgs []string) error {
+	endpoint := utils.TranslateEndpoint(resource)
 
-	if validResource != "projects" && project == "" {
+	if endpoint != "projects" && project == "" {
 		return errors.New("project is mandatory when performing this operation on resources other than projects")
 	}
 
@@ -30,7 +31,7 @@ func DownloadFileWithOptions(env, output, project, name, resource, id string, or
 
 	_, section := utils.LoadIniConfig([]string{env})
 	method := "GET"
-	url := utils.BuildCoreUrl(section, project, validResource, id, params)
+	url := utils.BuildCoreUrl(section, project, endpoint, id, params)
 	req := utils.PrepareRequest(method, url, nil, section.Key("access_token").String())
 	body, err := utils.DoRequest(req)
 

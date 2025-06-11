@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func RegisterEnvironment(env string, endpoint string) error {
+func RegisterHandler(env string, endpoint string) error {
 	if endpoint == "" {
 		return fmt.Errorf("endpoint is required")
 	}

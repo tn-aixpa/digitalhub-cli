@@ -13,11 +13,8 @@ import (
 	"dhcli/utils"
 )
 
-// GetResource implementa la logica del comando `get`
-func GetResource(env, output, project, name, resource, id string, originalArgs []string) error {
-	if resource == "" {
-		return errors.New("resource type is required")
-	}
+// GetHandler implementa la logica del comando `get`
+func GetHandler(env, output, project, name, resource, id string, originalArgs []string) error {
 
 	endpoint := utils.TranslateEndpoint(resource)
 

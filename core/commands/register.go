@@ -19,7 +19,7 @@ var registerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		endpoint := args[0]
 
-		if err := service.RegisterEnvironment(envFlag, endpoint); err != nil {
+		if err := service.RegisterHandler(envFlag, endpoint); err != nil {
 			log.Fatalf("Registration failed: %v", err)
 		}
 	},

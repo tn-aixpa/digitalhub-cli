@@ -19,7 +19,7 @@ var initCmd = &cobra.Command{
 		if len(args) > 0 {
 			env = args[0]
 		}
-		if err := service.InitEnvironment(env, preFlag); err != nil {
+		if err := service.InitEnvironmentHandler(env, preFlag); err != nil {
 			log.Fatalf("Init failed: %v", err)
 		}
 	},

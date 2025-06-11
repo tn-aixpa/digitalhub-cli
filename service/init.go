@@ -12,8 +12,8 @@ import (
 	"dhcli/utils"
 )
 
-// InitEnvironment verifica Python, conferma l'utente e installa i pacchetti
-func InitEnvironment(env string, includePre bool) error {
+// InitEnvironmentHandler verifica Python, conferma l'utente e installa i pacchetti
+func InitEnvironmentHandler(env string, includePre bool) error {
 	// 1. Controllo versione Python
 	out, err := exec.Command("python3", "--version").Output()
 	if err != nil {

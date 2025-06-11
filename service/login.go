@@ -26,8 +26,8 @@ const redirectURI = "http://localhost:4000/callback"
 
 var generatedState string
 
-// Login esegue il flusso PKCE per autenticarsi
-func Login(env string) error {
+// LoginHandler esegue il flusso PKCE per autenticarsi
+func LoginHandler(env string) error {
 	cfg, section := loadIniCfg(env)
 
 	utils.CheckUpdateEnvironment(cfg, section)
@@ -41,7 +41,7 @@ func Login(env string) error {
 	authURL := buildAuthURL(section, cc, generatedState)
 	// Log più leggibile in terminale
 	fmt.Println("──────────────────────────────────────────────")
-	fmt.Println("🔐  Login: Visit this URL to authenticate:")
+	fmt.Println("🔐  LoginHandler: Visit this URL to authenticate:")
 	fmt.Println("──────────────────────────────────────────────")
 	fmt.Println(authURL)
 	fmt.Println("──────────────────────────────────────────────")
@@ -115,7 +115,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, verifier string) {
 			prettyJSON.Write(tkn) // fallback testo semplice se errore
 		}
 
-		fmt.Fprintln(w, "<h1>Login successful</h1>")
+		fmt.Fprintln(w, "<h1>LoginHandler successful</h1>")
 		fmt.Fprintf(w, "<pre style=\"background:#f6f8fa;border:1px solid #ccc;padding:16px;width:800px;overflow:auto;\">%s</pre>", prettyJSON.String())
 
 		var m map[string]interface{}
@@ -131,7 +131,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, verifier string) {
 		}
 		utils.SaveIni(cfg)
 
-		log.Println("Login successful.")
+		log.Println("LoginHandler successful.")
 		go os.Exit(0)
 	})
 	go http.ListenAndServe(":4000", nil)

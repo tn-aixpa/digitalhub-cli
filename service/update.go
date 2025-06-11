@@ -10,7 +10,7 @@ import (
 
 func UpdateHandler(env, project, filePath, resource, id string, originalArgs []string) error {
 
-	validResource := utils.TranslateEndpoint(resource)
+	endpoint := utils.TranslateEndpoint(resource)
 
 	// Load environment and check API level requirements
 	cfg, section := utils.LoadIniConfig([]string{env})
@@ -22,7 +22,7 @@ func UpdateHandler(env, project, filePath, resource, id string, originalArgs []s
 		os.Exit(1)
 	}
 
-	if validResource != "projects" && project == "" {
+	if endpoint != "projects" && project == "" {
 		log.Println("Project is mandatory when performing this operation on resources other than projects.")
 		os.Exit(1)
 	}
@@ -46,13 +46,13 @@ func UpdateHandler(env, project, filePath, resource, id string, originalArgs []s
 
 	// Alter fields
 	if jsonMap["id"] != nil && jsonMap["id"] != id {
-		log.Printf("Error: specified ID (%v) and ID found in file (%v) do not match. Are you sure you are trying to update the correct validResource?\n", id, jsonMap["id"])
+		log.Printf("Error: specified ID (%v) and ID found in file (%v) do not match. Are you sure you are trying to update the correct resource?\n", id, jsonMap["id"])
 		os.Exit(1)
 	}
 
 	delete(jsonMap, "user")
 
-	if validResource != "projects" {
+	if endpoint != "projects" {
 		jsonMap["project"] = project
 	}
 
@@ -65,9 +65,13 @@ func UpdateHandler(env, project, filePath, resource, id string, originalArgs []s
 
 	// Request
 	method := "PUT"
-	url := utils.BuildCoreUrl(section, project, validResource, id, nil)
+	url := utils.BuildCoreUrl(section, project, endpoint, id, nil)
 	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())
-	utils.DoRequest(req)
+
+	_, err = utils.DoRequest(req)
+	if err != nil {
+		return err
+	}
 	log.Println("Updated successfully.")
 	return nil
 }

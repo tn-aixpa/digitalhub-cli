@@ -11,12 +11,12 @@ import (
 )
 
 var (
-	fileFlag string
+	confirmFlag bool
+	cascadeFlag bool
 )
-
-var updateCmd = &cobra.Command{
-	Use:   "update <resource> [id]",
-	Short: "Updates a specific resource using data from a YAML file",
+var deleteCmd = &cobra.Command{
+	Use:   "delete <resource> [id]",
+	Short: "Delete a resource from the core platform by ID or name",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 || len(args) > 2 {
 			return errors.New("requires 1 or 2 arguments: <resource> [<id>]")
@@ -29,10 +29,12 @@ var updateCmd = &cobra.Command{
 			id = args[1]
 		}
 
-		err := service.UpdateHandler(
+		err := service.DeleteHandler(
 			flags.EnvFlag,
 			flags.ProjectFlag,
-			fileFlag,
+			flags.NameFlag,
+			confirmFlag,
+			cascadeFlag,
 			args[0],
 			id,
 			args[1:])
@@ -44,9 +46,11 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
-	flags.AddCommonFlags(updateCmd, "env", "project")
+	flags.AddCommonFlags(deleteCmd, "env", "project", "name")
 
 	// Add file flags
-	updateCmd.Flags().StringVarP(&fileFlag, "file", "f", "", "path to the YAML file containing the resource data to be updated")
-	core.RegisterCommand(updateCmd)
+	deleteCmd.Flags().BoolVarP(&confirmFlag, "confirm", "y", false, "skips the deletion confirmation prompt")
+	deleteCmd.Flags().BoolVarP(&cascadeFlag, "cascade", "c", false, "if set, also deletes related resources (for projects)")
+
+	core.RegisterCommand(deleteCmd)
 }
