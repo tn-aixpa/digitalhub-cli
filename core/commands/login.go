@@ -1,8 +1,8 @@
-// cmd/login.go
-package cmd
+// core/login.go
+package commands
 
 import (
-	"dhcli/cmd/root"
+	"dhcli/core"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -28,5 +28,5 @@ var loginCmd = &cobra.Command{
 }
 
 func init() {
-	root.RegisterCommand(loginCmd)
+	core.RegisterCommand(loginCmd)
 }

@@ -1,10 +1,9 @@
-package root
+package core
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var dhcli = &cobra.Command{

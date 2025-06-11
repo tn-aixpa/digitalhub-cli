@@ -1,11 +1,12 @@
 package main
 
 import (
-	"dhcli/cmd/root"
+	"dhcli/core"
+	_ "dhcli/core/commands"
 	"gopkg.in/ini.v1"
 )
 
 func main() {
 	ini.DefaultHeader = true
-	root.Execute()
+	core.Execute()
 }

@@ -1,7 +1,7 @@
-package cmd
+package commands
 
 import (
-	"dhcli/cmd/root"
+	"dhcli/core"
 	"dhcli/service"
 	"github.com/spf13/cobra"
 )
@@ -17,5 +17,5 @@ var listEnvCmd = &cobra.Command{
 }
 
 func init() {
-	root.RegisterCommand(listEnvCmd)
+	core.RegisterCommand(listEnvCmd)
 }

@@ -1,8 +1,8 @@
-package cmd
+package commands
 
 import (
-	"dhcli/cmd/flags"
-	"dhcli/cmd/root"
+	"dhcli/core"
+	"dhcli/core/flags"
 	"log"
 
 	"dhcli/service"
@@ -36,5 +36,5 @@ var getCmd = &cobra.Command{
 
 func init() {
 	flags.AddCommonFlags(getCmd)
-	root.RegisterCommand(getCmd)
+	core.RegisterCommand(getCmd)
 }
