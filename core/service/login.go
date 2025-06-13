@@ -12,7 +12,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/ini.v1"
 	"io"
 	"log"
 	"net/http"
@@ -23,6 +22,8 @@ import (
 	"slices"
 	"strings"
 
+	"gopkg.in/ini.v1"
+
 	"dhcli/utils"
 )
 
@@ -30,7 +31,7 @@ const redirectURI = "http://localhost:4000/callback"
 
 var generatedState string
 
-// LoginHandler esegue il flusso PKCE per autenticarsi
+// Runs PKCE flow for authentication
 func LoginHandler(env string) error {
 	cfg, section := loadIniCfg(env)
 
@@ -43,17 +44,17 @@ func LoginHandler(env string) error {
 	startAuthCodeServer(cfg, section, cv)
 
 	authURL := buildAuthURL(section, cc, generatedState)
-	// Log più leggibile in terminale
-	fmt.Println("──────────────────────────────────────────────")
-	fmt.Println("🔐  LoginHandler: Visit this URL to authenticate:")
-	fmt.Println("──────────────────────────────────────────────")
+
+	fmt.Println("─────────────────────────────────────────────────────────────────────")
+	fmt.Println("🔐  The following URL will be opened in your browser to authenticate:")
+	fmt.Println("─────────────────────────────────────────────────────────────────────")
 	fmt.Println(authURL)
-	fmt.Println("──────────────────────────────────────────────")
-	fmt.Print("Press Enter to open browser… ")
+	fmt.Println("─────────────────────────────────────────────────────────────────────")
+	fmt.Print("Press Enter to continue... ")
 
 	_, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 	if err != nil {
-		fmt.Println("Error while authenticating...")
+		fmt.Printf("Error while authenticating: %v", err)
 		return err
 	}
 
@@ -61,7 +62,7 @@ func LoginHandler(env string) error {
 		log.Printf("Error opening browser: %v", err)
 	}
 
-	select {} // blocca finché il server non chiude l'app
+	select {} // lock the program to wait for user interaction
 }
 
 func loadIniCfg(env string) (*ini.File, *ini.Section) {
@@ -116,11 +117,17 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, verifier string) {
 
 		var prettyJSON bytes.Buffer
 		if err := json.Indent(&prettyJSON, tkn, "", "  "); err != nil {
-			prettyJSON.Write(tkn) // fallback testo semplice se errore
+			prettyJSON.Write(tkn) // Simple fallback text if an error occurred
 		}
 
-		fmt.Fprintln(w, "<h1>LoginHandler successful</h1>")
-		fmt.Fprintf(w, "<pre style=\"background:#f6f8fa;border:1px solid #ccc;padding:16px;width:800px;overflow:auto;\">%s</pre>", prettyJSON.String())
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintln(w, "<div style=\"margin: 24px 0px 0px 24px;\">")
+		fmt.Fprintln(w, "<h1>Authorization successful</h1>")
+		fmt.Fprintln(w, "<h3>You may now close this window.</h3>")
+		fmt.Fprintln(w, "<h3>Token response:</h3>")
+		fmt.Fprintln(w, "<button style=\"position: absolute;left: 810px;padding: 10px;opacity: 0.90;cursor: pointer;\" onclick=\"navigator.clipboard.writeText(document.getElementById('resp').innerHTML)\">Copy</button>")
+		fmt.Fprintf(w, "<pre id=\"resp\" style=\"background:#f6f8fa;border:1px solid #ccc;padding:16px;width:800px;overflow:auto;\">%s</pre>", prettyJSON.String())
+		fmt.Fprintln(w, "</div>")
 
 		var m map[string]interface{}
 		json.Unmarshal(tkn, &m)
@@ -135,7 +142,7 @@ func startAuthCodeServer(cfg *ini.File, section *ini.Section, verifier string) {
 		}
 		utils.SaveIni(cfg)
 
-		log.Println("LoginHandler successful.")
+		log.Println("Login successful.")
 		go os.Exit(0)
 	})
 	go http.ListenAndServe(":4000", nil)

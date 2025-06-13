@@ -7,16 +7,16 @@ package commands
 import (
 	"dhcli/core"
 	"dhcli/core/service"
+
 	"github.com/spf13/cobra"
 )
 
 var listEnvCmd = &cobra.Command{
 	Use:   "list-env",
-	Short: "Fetch environment variables",
+	Short: "List available environments",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		service.ListEnvHandler()
-
 	},
 }
 

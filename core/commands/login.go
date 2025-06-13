@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// core/login.go
 package commands
 
 import (
@@ -15,7 +14,7 @@ import (
 
 var loginCmd = &cobra.Command{
 	Use:   "login [environment]",
-	Short: "Login to a given environment",
+	Short: "Log in to a given environment",
 	Long:  "Authenticate the user using OAuth2 PKCE flow with the specified environment.",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
