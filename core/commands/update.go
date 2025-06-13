@@ -8,7 +8,6 @@ import (
 	"dhcli/core"
 	"dhcli/core/flags"
 	"dhcli/core/service"
-	"errors"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -19,30 +18,19 @@ var (
 )
 
 var updateCmd = &cobra.Command{
-	Use:   "update <resource> [id]",
-	Short: "Updates a specific resource using data from a YAML file",
-	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 || len(args) > 2 {
-			return errors.New("requires 1 or 2 arguments: <resource> [<id>]")
-		}
-		return nil
-	},
+	Use:   "update <resource> <id>",
+	Short: "Update a specific resource using data from a YAML file",
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		id := ""
-		if len(args) > 1 {
-			id = args[1]
-		}
-
 		err := service.UpdateHandler(
 			flags.EnvFlag,
 			flags.ProjectFlag,
 			fileFlag,
 			args[0],
-			id,
-			args[1:])
+			args[1])
 
 		if err != nil {
-			log.Fatalf("Get failed: %v", err)
+			log.Fatalf("Update failed: %v", err)
 		}
 	},
 }

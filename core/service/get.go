@@ -12,13 +12,13 @@ import (
 	"log"
 	"os"
 	"reflect"
+
 	"sigs.k8s.io/yaml"
 
 	"dhcli/utils"
 )
 
-// GetHandler implementa la logica del comando `get`
-func GetHandler(env, output, project, name, resource, id string, originalArgs []string) error {
+func GetHandler(env string, output string, project string, name string, resource string, id string, originalArgs []string) error {
 
 	endpoint := utils.TranslateEndpoint(resource)
 

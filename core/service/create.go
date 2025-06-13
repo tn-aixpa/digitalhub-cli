@@ -9,10 +9,11 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+
 	"sigs.k8s.io/yaml"
 )
 
-func CreateHandler(env, project string, name string, filePath string, resetId bool, resource, id string, originalArgs []string) error {
+func CreateHandler(env string, project string, name string, filePath string, resetId bool, resource string) error {
 
 	endpoint := utils.TranslateEndpoint(resource)
 

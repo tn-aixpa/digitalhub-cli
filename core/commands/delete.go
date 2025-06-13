@@ -20,7 +20,7 @@ var (
 )
 var deleteCmd = &cobra.Command{
 	Use:   "delete <resource> [id]",
-	Short: "Delete a resource from the core platform by ID or name",
+	Short: "Delete a resource by ID or name",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 || len(args) > 2 {
 			return errors.New("requires 1 or 2 arguments: <resource> [<id>]")
@@ -40,11 +40,10 @@ var deleteCmd = &cobra.Command{
 			confirmFlag,
 			cascadeFlag,
 			args[0],
-			id,
-			args[1:])
+			id)
 
 		if err != nil {
-			log.Fatalf("Get failed: %v", err)
+			log.Fatalf("Delete failed: %v", err)
 		}
 	},
 }

@@ -20,7 +20,7 @@ var (
 
 var listCmd = &cobra.Command{
 	Use:   "list <resource>",
-	Short: "List DigitalHub resources",
+	Short: "List resources",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := service.ListResourcesHandler(

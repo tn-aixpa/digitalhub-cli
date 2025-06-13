@@ -9,13 +9,14 @@ import (
 	"dhcli/core/flags"
 	"dhcli/core/service"
 	"errors"
-	"github.com/spf13/cobra"
 	"log"
+
+	"github.com/spf13/cobra"
 )
 
 var getCmd = &cobra.Command{
 	Use:   "get <resource> [id]",
-	Short: "Retrieve a digitalHub resource",
+	Short: "Retrieve a resource",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 || len(args) > 2 {
 			return errors.New("requires 1 or 2 arguments: <resource> [<id>]")

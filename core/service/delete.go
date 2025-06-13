@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func DeleteHandler(env, project string, name string, confirm bool, cascade bool, resource, id string, originalArgs []string) error {
+func DeleteHandler(env, project string, name string, confirm bool, cascade bool, resource, id string) error {
 
 	endpoint := utils.TranslateEndpoint(resource)
 

@@ -16,9 +16,9 @@ import (
 	"dhcli/utils"
 )
 
-// InitEnvironmentHandler verifica Python, conferma l'utente e installa i pacchetti
+// Installs Python packages
 func InitEnvironmentHandler(env string, includePre bool) error {
-	// 1. Controllo versione Python
+	// Check Python version
 	out, err := exec.Command("python3", "--version").Output()
 	if err != nil {
 		return fmt.Errorf("python3 non trovato: %w", err)
@@ -27,28 +27,27 @@ func InitEnvironmentHandler(env string, includePre bool) error {
 		return fmt.Errorf("versione Python non supportata (serve 3.9–3.12): %s", strings.TrimSpace(string(out)))
 	}
 
-	// 2. Legge la configurazione dall’ini
+	// Read ini configuration
 	_, section := utils.LoadIniConfig([]string{env})
-	// La tua funzione mantiene lo stesso comportamento: richiama LoadIniConfig
 
-	// 3. Estrae la minor version
+	// Get minor version
 	apiVer := section.Key("dhcore_version").String()
 	parts := strings.SplitN(apiVer, ".", 3)
 	if len(parts) > 2 {
 		apiVer = parts[0] + "." + parts[1]
 	}
 
-	// 4. Prompt di conferma
+	// Confirmation prompt
 	yes := promptYesNo(fmt.Sprintf("Newest patch version of digitalhub %v will be installed, continue? Y/n", apiVer))
 	if !yes {
 		log.Println("Installation cancelled by user.")
 		return nil
 	}
 
-	// 5. Costruisce l’opzione pip
+	// Build pip command
 	pipSpec := "~=" + apiVer + ".0"
 
-	// 6. Installa ogni pacchetto, nel formato originale
+	// Install packages
 	for _, pkg := range packageList() {
 		args := []string{"-m", "pip", "install", pkg + pipSpec}
 		if includePre {

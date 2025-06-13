@@ -8,20 +8,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
-	"gopkg.in/ini.v1"
 	"log"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/olekukonko/tablewriter"
+	"gopkg.in/ini.v1"
+
 	"sigs.k8s.io/yaml"
 
 	"dhcli/utils"
 )
 
-func ListResourcesHandler(env, output, project, name, kind, state, resource string) error {
+func ListResourcesHandler(env string, output string, project string, name string, kind string, state string, resource string) error {
 	endpoint := utils.TranslateEndpoint(resource)
 
 	cfg, section := utils.LoadIniConfig([]string{env})
