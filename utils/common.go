@@ -252,11 +252,19 @@ func WaitForConfirmation(msg string) {
 	}
 }
 
-func PrintCommentForYaml(section *ini.Section, args []string) {
+func PrintCommentForYaml(section *ini.Section, args ...string) {
 	fmt.Printf("# Generated on: %v\n", time.Now().Round(0))
 	fmt.Printf("#   from environment: %v (core version %v)\n", section.Key("dhcore_name").String(), section.Key("dhcore_version").String())
 	fmt.Printf("#   found at: %v\n", section.Key(DhCoreEndpoint).String())
-	fmt.Printf("#   with parameters: %v\n", strings.Join(args, " "))
+	argsString := ""
+	for _, s := range args {
+		if s != "" {
+			argsString += s + " "
+		}
+	}
+	if argsString != "" {
+		fmt.Printf("#   with parameters: %v\n", argsString[:len(argsString)-1])
+	}
 }
 
 func CheckApiLevel(section *ini.Section, min int, max int) {

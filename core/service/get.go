@@ -18,7 +18,7 @@ import (
 	"dhcli/utils"
 )
 
-func GetHandler(env string, output string, project string, name string, resource string, id string, originalArgs []string) error {
+func GetHandler(env string, output string, project string, name string, resource string, id string) error {
 
 	endpoint := utils.TranslateEndpoint(resource)
 
@@ -54,7 +54,7 @@ func GetHandler(env string, output string, project string, name string, resource
 	case "json":
 		return printJson(id, body)
 	case "yaml":
-		utils.PrintCommentForYaml(section, originalArgs)
+		utils.PrintCommentForYaml(section, env, resource, output, project, name, id)
 		return printYaml(id, body)
 	default:
 		return fmt.Errorf("unknown format: %s", format)

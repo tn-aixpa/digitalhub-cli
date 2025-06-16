@@ -60,7 +60,7 @@ func ListResourcesHandler(env string, output string, project string, name string
 	case "json":
 		printJSONList(elements)
 	case "yaml":
-		utils.PrintCommentForYaml(section, []string{resource})
+		utils.PrintCommentForYaml(section, env, resource, output, project, name, kind, state)
 		printYAMLList(elements)
 	default:
 		return fmt.Errorf("unknown format: %s", format)

@@ -35,8 +35,7 @@ var getCmd = &cobra.Command{
 			flags.ProjectFlag,
 			flags.NameFlag,
 			args[0],
-			id,
-			args[1:])
+			id)
 
 		if err != nil {
 			log.Fatalf("Get failed: %v", err)
