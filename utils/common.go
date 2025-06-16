@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: © 2025 DSLab - Fondazione Bruno Kessler
+//
 // SPDX-License-Identifier: Apache-2.0
 
 package utils
@@ -169,6 +171,40 @@ func loadConfig() map[string]interface{} {
 	}
 
 	return config
+}
+
+func LoadIniConfig(args []string) (*ini.File, *ini.Section) {
+	cfg := LoadIni(false)
+
+	sectionName := ""
+
+	if len(args) == 0 || args[0] == "" {
+		if cfg.HasSection("DEFAULT") {
+			defaultSection, err := cfg.GetSection("DEFAULT")
+			if err != nil {
+				log.Printf("Error while reading default environment: %v\n", err)
+				os.Exit(1)
+			}
+			if defaultSection.HasKey("current_environment") {
+				sectionName = defaultSection.Key("current_environment").String()
+			}
+		}
+
+		if sectionName == "" {
+			log.Println("Error: environment was not passed and default environment is not specified in ini file.")
+			os.Exit(1)
+		}
+	} else {
+		sectionName = args[0]
+	}
+
+	section, err := cfg.GetSection(sectionName)
+	if err != nil {
+		log.Printf("Failed to read section '%s': %v.\n", sectionName, err)
+		os.Exit(1)
+	}
+
+	return cfg, section
 }
 
 func TranslateEndpoint(resource string) string {

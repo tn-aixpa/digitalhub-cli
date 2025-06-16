@@ -1,53 +1,29 @@
+// SPDX-FileCopyrightText: © 2025 DSLab - Fondazione Bruno Kessler
+//
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package service
 
 import (
 	"dhcli/utils"
 	"encoding/json"
-	"flag"
 	"log"
 	"os"
 
 	"sigs.k8s.io/yaml"
 )
 
-func init() {
-	RegisterCommand(&Command{
-		Name:        "create",
-		Description: "dhcli create [-e <environment> -p <project> -f <file> -n name --reset-id] <resource> <name>",
-		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("e", "", "environment")
-			fs.String("p", "", "project")
-			fs.String("f", "", "file")
-			fs.String("n", "", "name")
-			fs.Bool("reset-id", false, "reset ID, ignoring the one in the file")
-		},
-		Handler: createHandler,
-	})
-}
+func CreateHandler(env string, project string, name string, filePath string, resetId bool, resource string) error {
 
-func createHandler(args []string, fs *flag.FlagSet) {
-	fs.Parse(args)
-	if len(fs.Args()) < 1 {
-		log.Println("Error: resource type is required.")
-		os.Exit(1)
-	}
-	resource := utils.TranslateEndpoint(fs.Args()[0])
+	endpoint := utils.TranslateEndpoint(resource)
 
 	// Load environment and check API level requirements
-	environment := fs.Lookup("e").Value.String()
-	cfg, section := loadIniConfig([]string{environment})
+	cfg, section := utils.LoadIniConfig([]string{env})
 	utils.CheckUpdateEnvironment(cfg, section)
 	utils.CheckApiLevel(section, utils.CreateMin, utils.CreateMax)
 
-	project := fs.Lookup("p").Value.String()
-	filePath := fs.Lookup("f").Value.String()
-	name := fs.Lookup("n").Value.String()
-	resetId := fs.Lookup("reset-id").Value.String()
-
 	// Validate parameters
-	if resource != "projects" {
+	if endpoint != "projects" {
 		if project == "" {
 			log.Println("Project is mandatory when performing this operation on resources other than projects.")
 			os.Exit(1)
@@ -84,11 +60,11 @@ func createHandler(args []string, fs *flag.FlagSet) {
 		// Alter fields
 		delete(jsonMap, "user")
 
-		if resource != "projects" {
+		if endpoint != "projects" {
 			jsonMap["project"] = project
 		}
 
-		if resetId == "true" {
+		if resetId == true {
 			delete(jsonMap, "id")
 		}
 	} else {
@@ -105,8 +81,13 @@ func createHandler(args []string, fs *flag.FlagSet) {
 
 	// Request
 	method := "POST"
-	url := utils.BuildCoreUrl(section, project, resource, "", nil)
+	url := utils.BuildCoreUrl(section, project, endpoint, "", nil)
 	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())
-	utils.DoRequest(req)
+	_, err = utils.DoRequest(req)
+	if err != nil {
+		return err
+	}
+
 	log.Println("Created successfully.")
+	return nil
 }

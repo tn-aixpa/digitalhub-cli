@@ -1,34 +1,23 @@
+// SPDX-FileCopyrightText: © 2025 DSLab - Fondazione Bruno Kessler
+//
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package service
 
 import (
+	"dhcli/utils"
 	"encoding/json"
-	"flag"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-
-	"dhcli/utils"
 )
 
-func init() {
-
-	RegisterCommand(&Command{
-		Name:        "refresh",
-		Description: "dhcli refresh <environment>",
-		SetupFlags:  func(fs *flag.FlagSet) {},
-		Handler:     refreshHandler,
-	})
-
-}
-
-func refreshHandler(args []string, fs *flag.FlagSet) {
+func RefreshHandler(env string) {
 	// Read config from ini file
-	cfg, section := loadIniConfig(args)
+	cfg, section := utils.LoadIniConfig([]string{env})
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")

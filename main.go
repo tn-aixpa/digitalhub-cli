@@ -1,9 +1,13 @@
+// SPDX-FileCopyrightText: © 2025 DSLab - Fondazione Bruno Kessler
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
-	"dhcli/cmd"
+	"dhcli/core"
+	_ "dhcli/core/commands"
 	"log"
-	"os"
 
 	"gopkg.in/ini.v1"
 )
@@ -11,5 +15,5 @@ import (
 func main() {
 	log.SetFlags(0)
 	ini.DefaultHeader = true
-	cmd.ExecuteCommand(os.Args[1:])
+	core.Execute()
 }

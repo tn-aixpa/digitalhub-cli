@@ -1,26 +1,16 @@
+// SPDX-FileCopyrightText: © 2025 DSLab - Fondazione Bruno Kessler
+//
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package service
 
 import (
 	"dhcli/utils"
-	"flag"
 	"fmt"
 	"log"
 )
 
-func init() {
-
-	RegisterCommand(&Command{
-		Name:        "list-env",
-		Description: "dhcli list-env",
-		SetupFlags:  func(fs *flag.FlagSet) {},
-		Handler:     listenvHandler,
-	})
-
-}
-
-func listenvHandler(args []string, fs *flag.FlagSet) {
+func ListEnvHandler() {
 	cfg := utils.LoadIni(true)
 	sections := cfg.SectionStrings()
 	sectionsString := ""

@@ -1,58 +1,37 @@
+// SPDX-FileCopyrightText: © 2025 DSLab - Fondazione Bruno Kessler
+//
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package service
 
 import (
 	"dhcli/utils"
 	"encoding/json"
-	"flag"
 	"log"
 	"os"
 
 	"sigs.k8s.io/yaml"
 )
 
-func init() {
-	RegisterCommand(&Command{
-		Name:        "update",
-		Description: "dhcli update [-e <environment> -p <project>] -f <file> <resource> <id>",
-		SetupFlags: func(fs *flag.FlagSet) {
-			fs.String("e", "", "environment")
-			fs.String("p", "", "project")
-			fs.String("f", "", "file")
-		},
-		Handler: updateHandler,
-	})
-}
+func UpdateHandler(env string, project string, filePath string, resource string, id string) error {
 
-func updateHandler(args []string, fs *flag.FlagSet) {
-	fs.Parse(args)
-	if len(fs.Args()) < 2 {
-		log.Println("Error: resource type and id are required.")
-		os.Exit(1)
-	}
-	resource := utils.TranslateEndpoint(fs.Args()[0])
-	id := fs.Args()[1]
+	endpoint := utils.TranslateEndpoint(resource)
 
 	// Load environment and check API level requirements
-	environment := fs.Lookup("e").Value.String()
-	cfg, section := loadIniConfig([]string{environment})
+	cfg, section := utils.LoadIniConfig([]string{env})
 	utils.CheckUpdateEnvironment(cfg, section)
 	utils.CheckApiLevel(section, utils.UpdateMin, utils.UpdateMax)
-
-	project := fs.Lookup("p").Value.String()
-	filePath := fs.Lookup("f").Value.String()
 
 	if filePath == "" {
 		log.Println("Input file not specified.")
 		os.Exit(1)
 	}
 
-	if resource != "projects" && project == "" {
+	if endpoint != "projects" && project == "" {
 		log.Println("Project is mandatory when performing this operation on resources other than projects.")
 		os.Exit(1)
 	}
-	// Read file
+	// Read a file
 	file, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Printf("Failed to read YAML file: %v\n", err)
@@ -78,7 +57,7 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 
 	delete(jsonMap, "user")
 
-	if resource != "projects" {
+	if endpoint != "projects" {
 		jsonMap["project"] = project
 	}
 
@@ -91,8 +70,13 @@ func updateHandler(args []string, fs *flag.FlagSet) {
 
 	// Request
 	method := "PUT"
-	url := utils.BuildCoreUrl(section, project, resource, id, nil)
+	url := utils.BuildCoreUrl(section, project, endpoint, id, nil)
 	req := utils.PrepareRequest(method, url, jsonBody, section.Key("access_token").String())
-	utils.DoRequest(req)
+
+	_, err = utils.DoRequest(req)
+	if err != nil {
+		return err
+	}
 	log.Println("Updated successfully.")
+	return nil
 }

@@ -1,33 +1,17 @@
+// SPDX-FileCopyrightText: © 2025 DSLab - Fondazione Bruno Kessler
+//
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package service
 
 import (
-	"flag"
+	"dhcli/utils"
 	"log"
 	"os"
-
-	"dhcli/utils"
 )
 
-func init() {
-
-	RegisterCommand(&Command{
-		Name:        "remove",
-		Description: "dhcli remove <environment>",
-		SetupFlags:  func(fs *flag.FlagSet) {},
-		Handler:     removeHandler,
-	})
-
-}
-
-func removeHandler(args []string, fs *flag.FlagSet) {
-	if len(args) < 1 {
-		log.Printf("Error: Environment is a required positional argument.\nUsage: dhcli remove <environment>\n")
-		os.Exit(1)
-	}
-
-	sectionName := args[0]
+func RemoveHandler(env string) {
+	sectionName := env
 
 	cfg := utils.LoadIni(false)
 	if !cfg.HasSection(sectionName) {
