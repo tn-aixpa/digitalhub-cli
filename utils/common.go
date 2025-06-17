@@ -136,13 +136,22 @@ func DoRequest(req *http.Request) ([]byte, error) {
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != 200 {
-		log.Printf("Core responded with error %v\n", resp.Status)
+		// Extract message from body (if present), to return a more meaningful error
+		msg := ""
+		var bodyMap map[string]interface{}
+		if err := json.Unmarshal(body, &bodyMap); err == nil {
+			if message, ok := bodyMap["message"]; ok && reflect.ValueOf(message).Kind() == reflect.String {
+				msg += " - " + message.(string)
+			}
+		}
+
+		log.Printf("Core responded with: %v%v\n", resp.Status, msg)
 		os.Exit(1)
 	}
 
-	body, err := io.ReadAll(resp.Body)
 	return body, err
 }
 
