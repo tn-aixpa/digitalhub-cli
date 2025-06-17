@@ -1,11 +1,11 @@
 {
     "resources": {
-        "artifact": "artifacts",
-        "dataitem": "dataitems",
-        "function": "functions",
-        "model": "models",
-        "project": "projects",
-        "run": "runs",
-        "workflow": "workflows"
+        "artifacts": "artifact",
+        "dataitems": "dataitem",
+        "functions": "function, fn",
+        "models": "model",
+        "projects": "project",
+        "runs": "run",
+        "workflows": "workflow"
     }
 }

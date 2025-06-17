@@ -216,11 +216,16 @@ func TranslateEndpoint(resource string) string {
 
 			for key, val := range endpointsMap {
 				if key == resource {
-					return val.(string)
+					return key
 				}
 
-				if reflect.ValueOf(val).Kind() == reflect.String && resource == val.(string) {
-					return resource
+				if reflect.ValueOf(val).Kind() == reflect.String && val != "" {
+					aliases := strings.Split(val.(string), ",")
+					for _, alias := range aliases {
+						if strings.TrimSpace(alias) == resource {
+							return key
+						}
+					}
 				}
 			}
 		}
