@@ -9,9 +9,12 @@ import (
 	"dhcli/core/flags"
 	"dhcli/core/service"
 	"errors"
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"log"
+)
+
+var (
+	fileOrDirectoryFlag string
 )
 
 var downloadCmd = &cobra.Command{
@@ -32,31 +35,21 @@ var downloadCmd = &cobra.Command{
 
 		if err := service.DownloadHandler(
 			flags.EnvFlag,
-			flags.OutFlag,
+			fileOrDirectoryFlag,
 			flags.ProjectFlag,
 			flags.NameFlag,
 			args[0],
 			id,
 			args[1:]); err != nil {
-			_ = fmt.Errorf("download failed: %w", err)
+			log.Fatalf("Download failed: %v", err)
 		}
 	},
 }
 
 func init() {
-	flags.AddCommonFlags(downloadCmd)
+	flags.AddCommonFlags(downloadCmd, "env", "project", "name")
 
-	// override output common flag in this case out is a new filename or directory name
-	flag := downloadCmd.Flags().Lookup("out")
-
-	if flag != nil {
-		flag.Usage = "output filename or directory"
-		flag.DefValue = "current filename or directory"
-		err := flag.Value.Set("")
-		if err != nil {
-			return
-		}
-	}
+	downloadCmd.Flags().StringVarP(&fileOrDirectoryFlag, "out", "o", "", "output filename or directory")
 
 	core.RegisterCommand(downloadCmd)
 }
