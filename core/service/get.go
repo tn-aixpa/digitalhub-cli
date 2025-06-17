@@ -76,7 +76,7 @@ func printShort(src []byte) error {
 
 	fmt.Printf("%-12s %v\n", "Kind:", m["kind"])
 	fmt.Printf("%-12s %v\n", "ID:", m["id"])
-	fmt.Printf("%-12s %v\n", "Key:", m["key"])
+	fmt.Printf("%-12s %v\n", "Path:", m["key"])
 
 	if meta, ok := m["metadata"].(map[string]interface{}); ok {
 		fmt.Printf("%-12s %v\n", "Created on:", meta["created"])

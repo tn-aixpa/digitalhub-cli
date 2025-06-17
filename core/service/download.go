@@ -93,17 +93,16 @@ func DownloadHandler(env string, output string, project string, name string, res
 				s3Client = client
 			}
 			if err := utils.DownloadS3File(s3Client, ctx, parsedPath, localPath); err != nil {
-
+				log.Println("Error downloading from S3:", err)
 			}
 
 		case "http", "https":
 			if err := utils.DownloadHTTPFile(parsedPath.Path, localPath); err != nil {
-				return fmt.Errorf("HTTP download failed: %w", err)
+				log.Println("Error downloading from HTTP/s:", err)
 			}
 
-		case "file", "":
-			// Nothing to do or copy if needed
-			fmt.Printf("Skipping local file: %s\n", parsedPath.Path)
+		case "other", "":
+			fmt.Printf("Skipping other.....: %s\n", parsedPath.Path)
 
 		default:
 			return fmt.Errorf("unsupported scheme: %s", parsedPath.Scheme)
