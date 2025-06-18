@@ -90,7 +90,7 @@ func (c *Client) ListFiles(ctx context.Context, bucket string, prefix string, ma
 			Path:         *obj.Key,
 			Name:         name,
 			Size:         *obj.Size,
-			LastModified: obj.LastModified.Format("2006-01-02T15:04:05Z07:00"),
+			LastModified: obj.LastModified.Format("2025-06-02T15:04:05Z07:00"),
 		})
 	}
 

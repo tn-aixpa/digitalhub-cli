@@ -35,26 +35,28 @@ func DownloadHTTPFile(url string, destination string) error {
 	return err
 }
 
-// DownloadS3File Function for download file or directory form S3
-func DownloadS3File(s3Client *s3client.Client, ctx context.Context,
+// DownloadS3FileOrDir Function for download file or directory form S3
+func DownloadS3FileOrDir(s3Client *s3client.Client, ctx context.Context,
 	parsedPath *ParsedPath, localPath string,
 ) error {
 	bucket := parsedPath.Host
-	key := parsedPath.Path
+	path := parsedPath.Path
 
-	// Se è una "cartella"
-	if strings.HasSuffix(key, "/") {
-		files, err := s3Client.ListFiles(ctx, bucket, key, aws.Int32(200))
+	//TODO for pagination use ContinuationToken (check how to do it)
+
+	// If folder
+	if strings.HasSuffix(path, "/") {
+		files, err := s3Client.ListFiles(ctx, bucket, path, aws.Int32(200)) //TODO remove maxKeys???
 		if err != nil {
 			return fmt.Errorf("failed to list S3 folder: %w", err)
 		}
 
 		for _, file := range files {
-			// Costruisci path locale relativo
-			relativePath := strings.TrimPrefix(file.Path, key)
+			// Build path
+			relativePath := strings.TrimPrefix(file.Path, path)
 			targetPath := filepath.Join(localPath, relativePath)
 
-			// Crea directory se necessario
+			// Create a directory if necessary
 			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 				return fmt.Errorf("failed to create local directory: %w", err)
 			}
@@ -64,8 +66,8 @@ func DownloadS3File(s3Client *s3client.Client, ctx context.Context,
 			}
 		}
 	} else {
-		// File singolo
-		if err := s3Client.DownloadFile(ctx, bucket, key, localPath); err != nil {
+		// Single file
+		if err := s3Client.DownloadFile(ctx, bucket, path, localPath); err != nil {
 			return fmt.Errorf("S3 download failed: %w", err)
 		}
 	}

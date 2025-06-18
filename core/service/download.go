@@ -92,7 +92,7 @@ func DownloadHandler(env string, output string, project string, name string, res
 				}
 				s3Client = client
 			}
-			if err := utils.DownloadS3File(s3Client, ctx, parsedPath, localPath); err != nil {
+			if err := utils.DownloadS3FileOrDir(s3Client, ctx, parsedPath, localPath); err != nil {
 				log.Println("Error downloading from S3:", err)
 			}
 
