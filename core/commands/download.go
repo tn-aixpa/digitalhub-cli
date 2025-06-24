@@ -13,9 +13,7 @@ import (
 	"log"
 )
 
-var (
-	fileOrDirectoryFlag string
-)
+var downloadFlag = flags.FileFlag{}
 
 var downloadCmd = &cobra.Command{
 	Use:   "download <resource> <id>",
@@ -34,10 +32,10 @@ var downloadCmd = &cobra.Command{
 		}
 
 		if err := service.DownloadHandler(
-			flags.EnvFlag,
-			fileOrDirectoryFlag,
-			flags.ProjectFlag,
-			flags.NameFlag,
+			flags.CommonFlag.EnvFlag,
+			downloadFlag.FileOrDirectoryFlag,
+			flags.CommonFlag.ProjectFlag,
+			flags.CommonFlag.NameFlag,
 			args[0],
 			id,
 			args[1:]); err != nil {
@@ -49,7 +47,7 @@ var downloadCmd = &cobra.Command{
 func init() {
 	flags.AddCommonFlags(downloadCmd, "env", "project", "name")
 
-	downloadCmd.Flags().StringVarP(&fileOrDirectoryFlag, "out", "o", "", "output filename or directory")
+	downloadCmd.Flags().StringVarP(&downloadFlag.FileOrDirectoryFlag, "out", "o", "", "output filename or directory")
 
 	core.RegisterCommand(downloadCmd)
 }

@@ -24,10 +24,10 @@ var listCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := service.ListResourcesHandler(
-			flags.EnvFlag,
-			flags.OutFlag,
-			flags.ProjectFlag,
-			flags.NameFlag,
+			flags.CommonFlag.EnvFlag,
+			flags.CommonFlag.OutFlag,
+			flags.CommonFlag.ProjectFlag,
+			flags.CommonFlag.NameFlag,
 			listKind,
 			listState,
 			args[0],

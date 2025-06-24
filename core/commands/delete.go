@@ -34,9 +34,9 @@ var deleteCmd = &cobra.Command{
 		}
 
 		err := service.DeleteHandler(
-			flags.EnvFlag,
-			flags.ProjectFlag,
-			flags.NameFlag,
+			flags.CommonFlag.EnvFlag,
+			flags.CommonFlag.ProjectFlag,
+			flags.CommonFlag.NameFlag,
 			confirmFlag,
 			cascadeFlag,
 			args[0],
