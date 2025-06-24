@@ -8,18 +8,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type FileFlag struct {
-	FileOrDirectoryFlag string
+type SpecificCommandFlag struct {
+	OutputFlag   string
+	CreateFlag   bool
+	InputFlag    string
+	FilePathFlag string
+	ResetIdFlag  bool
+	ConfirmFlag  bool
+	CascadeFlag  bool
+	PreFlag      bool
+	ListKind     string
+	ListState    string
+	EnvFlag      string
 }
 
-type CommonCommandFlag struct {
+type commonCommandFlag struct {
 	EnvFlag     string
 	OutFlag     string
 	ProjectFlag string
 	NameFlag    string
 }
 
-var CommonFlag = CommonCommandFlag{}
+var CommonFlag = commonCommandFlag{}
 
 func AddCommonFlags(cmd *cobra.Command, flagsToAdd ...string) {
 

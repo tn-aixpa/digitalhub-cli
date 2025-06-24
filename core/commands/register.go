@@ -6,15 +6,14 @@ package commands
 
 import (
 	"dhcli/core"
+	"dhcli/core/flags"
 	"dhcli/core/service"
 	"log"
 
 	"github.com/spf13/cobra"
 )
 
-var (
-	envFlag string
-)
+var registerFlag = flags.SpecificCommandFlag{}
 
 var registerCmd = &cobra.Command{
 	Use:   "register <endpoint>",
@@ -23,13 +22,13 @@ var registerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		endpoint := args[0]
 
-		if err := service.RegisterHandler(envFlag, endpoint); err != nil {
+		if err := service.RegisterHandler(registerFlag.EnvFlag, endpoint); err != nil {
 			log.Fatalf("Registration failed: %v", err)
 		}
 	},
 }
 
 func init() {
-	registerCmd.Flags().StringVarP(&envFlag, "env", "e", "", "environment")
+	registerCmd.Flags().StringVarP(&registerFlag.EnvFlag, "env", "e", "", "environment")
 	core.RegisterCommand(registerCmd)
 }

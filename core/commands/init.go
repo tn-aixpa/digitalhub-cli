@@ -6,13 +6,14 @@ package commands
 
 import (
 	"dhcli/core"
+	"dhcli/core/flags"
 	"dhcli/core/service"
 	"log"
 
 	"github.com/spf13/cobra"
 )
 
-var preFlag bool
+var initFlag = flags.SpecificCommandFlag{}
 
 var initCmd = &cobra.Command{
 	Use:   "init [<environment>]",
@@ -23,13 +24,13 @@ var initCmd = &cobra.Command{
 		if len(args) > 0 {
 			env = args[0]
 		}
-		if err := service.InitEnvironmentHandler(env, preFlag); err != nil {
+		if err := service.InitEnvironmentHandler(env, initFlag.PreFlag); err != nil {
 			log.Fatalf("Init failed: %v", err)
 		}
 	},
 }
 
 func init() {
-	initCmd.Flags().BoolVar(&preFlag, "pre", false, "Include pre-release versions when installing")
+	initCmd.Flags().BoolVar(&initFlag.PreFlag, "pre", false, "Include pre-release versions when installing")
 	core.RegisterCommand(initCmd)
 }

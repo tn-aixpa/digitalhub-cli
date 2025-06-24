@@ -13,10 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	listKind  string
-	listState string
-)
+var listFlag = flags.SpecificCommandFlag{}
 
 var listCmd = &cobra.Command{
 	Use:   "list <resource>",
@@ -28,8 +25,8 @@ var listCmd = &cobra.Command{
 			flags.CommonFlag.OutFlag,
 			flags.CommonFlag.ProjectFlag,
 			flags.CommonFlag.NameFlag,
-			listKind,
-			listState,
+			listFlag.ListKind,
+			listFlag.ListState,
 			args[0],
 		); err != nil {
 			log.Fatalf("List failed: %v", err)
@@ -41,8 +38,8 @@ func init() {
 	flags.AddCommonFlags(listCmd)
 
 	// Add specific command flags
-	listCmd.Flags().StringVarP(&listKind, "kind", "k", "", "kind")
-	listCmd.Flags().StringVarP(&listState, "state", "s", "", "state")
+	listCmd.Flags().StringVarP(&listFlag.ListKind, "kind", "k", "", "kind")
+	listCmd.Flags().StringVarP(&listFlag.ListState, "state", "s", "", "state")
 
 	core.RegisterCommand(listCmd)
 }

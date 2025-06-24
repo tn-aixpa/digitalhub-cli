@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var uploadFlag = flags.FileFlag{}
+var uploadFlag = flags.SpecificCommandFlag{}
 
 var uploadCmd = &cobra.Command{
 	Use:   "upload <resource>",
@@ -35,7 +35,8 @@ var uploadCmd = &cobra.Command{
 func init() {
 	flags.AddCommonFlags(uploadCmd, "env", "project", "name")
 
-	uploadCmd.Flags().StringVarP(&uploadFlag.FileOrDirectoryFlag, "input", "i", "", "input filename or directory")
+	uploadCmd.Flags().StringVarP(&uploadFlag.InputFlag, "input", "i", "", "input filename or directory")
+	uploadCmd.Flags().BoolVarP(&uploadFlag.CreateFlag, "create", "c", false, "if set, also create resource on core")
 
 	core.RegisterCommand(uploadCmd)
 }
