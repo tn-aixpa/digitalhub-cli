@@ -23,8 +23,8 @@ var updateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := service.UpdateHandler(
-			flags.EnvFlag,
-			flags.ProjectFlag,
+			flags.CommonFlag.EnvFlag,
+			flags.CommonFlag.ProjectFlag,
 			fileFlag,
 			args[0],
 			args[1])

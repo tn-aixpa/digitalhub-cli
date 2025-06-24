@@ -23,9 +23,9 @@ var createCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := service.CreateHandler(
-			flags.EnvFlag,
-			flags.ProjectFlag,
-			flags.NameFlag,
+			flags.CommonFlag.EnvFlag,
+			flags.CommonFlag.ProjectFlag,
+			flags.CommonFlag.NameFlag,
 			filePathFlag,
 			resetIdFlag,
 			args[0])

@@ -60,26 +60,41 @@ func NewClient(ctx context.Context, cfgCreds Config) (*Client, error) {
 	}, nil
 }
 
-func ParseS3Path(s3path string) (bucket string, key string, filename string, err error) {
-	const prefix = "s3://"
-	if !strings.HasPrefix(s3path, prefix) {
-		return "", "", "", fmt.Errorf("invalid s3 path: must start with %q", prefix)
+type S3File struct {
+	Path         string
+	Name         string
+	Size         int64
+	LastModified string
+}
+
+// ListFiles lists all objects under a given prefix (like a folder)
+func (c *Client) ListFiles(ctx context.Context, bucket string, prefix string, maxKeys *int32) ([]S3File, error) {
+	input := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: maxKeys,
 	}
 
-	trimmed := strings.TrimPrefix(s3path, prefix)
-	parts := strings.SplitN(trimmed, "/", 2)
-	if len(parts) != 2 {
-		return "", "", "", fmt.Errorf("invalid s3 path: must contain bucket and key")
+	resp, err := c.s3.ListObjectsV2(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list objects in S3: %w", err)
 	}
 
-	bucket = parts[0]
-	key = parts[1]
+	files := make([]S3File, 0, len(resp.Contents))
+	for _, obj := range resp.Contents {
+		name := *obj.Key
+		if prefix != "" && strings.HasPrefix(name, prefix) {
+			name = strings.TrimPrefix(name, prefix)
+		}
+		files = append(files, S3File{
+			Path:         *obj.Key,
+			Name:         name,
+			Size:         *obj.Size,
+			LastModified: obj.LastModified.Format("2025-06-02T15:04:05Z07:00"),
+		})
+	}
 
-	// Extract file name from the key
-	keyParts := strings.Split(key, "/")
-	filename = keyParts[len(keyParts)-1]
-
-	return bucket, key, filename, nil
+	return files, nil
 }
 
 // DownloadFile downloads a file from S3 and saves it locally
@@ -110,32 +125,3 @@ func (c *Client) DownloadFile(ctx context.Context, bucket, key, localPath string
 
 	return nil
 }
-
-//// UploadFile uploads a local file to the specified S3 bucket and key
-//func (c *Client) UploadFile(ctx context.Context, bucket, key, localPath string) error {
-//	// Open the local file for reading
-//	file, err := os.Open(localPath)
-//	if err != nil {
-//		return fmt.Errorf("failed to open local file: %w", err)
-//	}
-//	defer file.Close()
-//
-//	// Get file info for content length (optional but recommended)
-//	fileInfo, err := file.Stat()
-//	if err != nil {
-//		return fmt.Errorf("failed to stat local file: %w", err)
-//	}
-//
-//	// Upload the file to S3
-//	_, err = c.s3.PutObject(ctx, &s3.PutObjectInput{
-//		Bucket:        &bucket,
-//		Key:           &key,
-//		Body:          file,
-//		ContentLength: fileInfo.Size(),
-//	})
-//	if err != nil {
-//		return fmt.Errorf("failed to upload file to S3: %w", err)
-//	}
-//
-//	return nil
-//}

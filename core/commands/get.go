@@ -30,10 +30,10 @@ var getCmd = &cobra.Command{
 		}
 
 		err := service.GetHandler(
-			flags.EnvFlag,
-			flags.OutFlag,
-			flags.ProjectFlag,
-			flags.NameFlag,
+			flags.CommonFlag.EnvFlag,
+			flags.CommonFlag.OutFlag,
+			flags.CommonFlag.ProjectFlag,
+			flags.CommonFlag.NameFlag,
 			args[0],
 			id)
 

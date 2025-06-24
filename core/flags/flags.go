@@ -8,12 +8,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
+type FileFlag struct {
+	FileOrDirectoryFlag string
+}
+
+type CommonCommandFlag struct {
 	EnvFlag     string
 	OutFlag     string
 	ProjectFlag string
 	NameFlag    string
-)
+}
+
+var CommonFlag = CommonCommandFlag{}
 
 func AddCommonFlags(cmd *cobra.Command, flagsToAdd ...string) {
 
@@ -24,13 +30,13 @@ func AddCommonFlags(cmd *cobra.Command, flagsToAdd ...string) {
 	for _, flag := range flagsToAdd {
 		switch flag {
 		case "env":
-			cmd.Flags().StringVarP(&EnvFlag, "env", "e", "", "environment")
+			cmd.Flags().StringVarP(&CommonFlag.EnvFlag, "env", "e", "", "environment")
 		case "out":
-			cmd.Flags().StringVarP(&OutFlag, "out", "o", "short", "output format (short, json, yaml)")
+			cmd.Flags().StringVarP(&CommonFlag.OutFlag, "out", "o", "short", "output format (short, json, yaml)")
 		case "project":
-			cmd.Flags().StringVarP(&ProjectFlag, "project", "p", "", "project")
+			cmd.Flags().StringVarP(&CommonFlag.ProjectFlag, "project", "p", "", "project")
 		case "name":
-			cmd.Flags().StringVarP(&NameFlag, "name", "n", "", "name")
+			cmd.Flags().StringVarP(&CommonFlag.NameFlag, "name", "n", "", "name")
 		}
 	}
 }

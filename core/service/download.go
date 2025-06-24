@@ -14,10 +14,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 )
 
-// TODO output
-func DownloadHandler(env, output, project, name, resource, id string, originalArgs []string) error {
+func DownloadHandler(env string, output string, project string, name string, resource string, id string, originalArgs []string) error {
 	endpoint := utils.TranslateEndpoint(resource)
 
 	if endpoint != "projects" && project == "" {
@@ -38,13 +39,11 @@ func DownloadHandler(env, output, project, name, resource, id string, originalAr
 	url := utils.BuildCoreUrl(section, project, endpoint, id, params)
 	req := utils.PrepareRequest(method, url, nil, section.Key("access_token").String())
 	body, err := utils.DoRequest(req)
-
 	if err != nil {
 		return fmt.Errorf("error reading response: %w", err)
 	}
 
-	var resp models.Response[models.Artifact] //TODO fix the type in future
-
+	var resp models.Response[models.Artifact]
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return fmt.Errorf("error unmarshalling JSON: %w", err)
 	}
@@ -53,33 +52,63 @@ func DownloadHandler(env, output, project, name, resource, id string, originalAr
 	}
 
 	ctx := context.Background()
-	cfg := s3client.Config{
-		AccessKey:   section.Key("aws_access_key_id").String(),
-		SecretKey:   section.Key("aws_secret_access_key").String(),
-		AccessToken: section.Key("aws_session_token").String(),
-		Region:      section.Key("aws_region").String(),
-		EndpointURL: section.Key("aws_endpoint_url").String(),
-	}
-	client, err := s3client.NewClient(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create S3 client: %w", err)
-	}
+	var s3Client *s3client.Client
 
 	for i, artifact := range resp.Content {
 		fmt.Printf("Artifact #%d - Path: %s\n", i+1, artifact.Spec.Path)
 
-		bucket, key, filename, err := s3client.ParseS3Path(artifact.Spec.Path)
-		fmt.Println(bucket, key, filename)
+		parsedPath, err := utils.ParsePath(artifact.Spec.Path)
 		if err != nil {
-			return fmt.Errorf("invalid S3 path: %w", err)
+			return fmt.Errorf("failed to parse path: %w", err)
 		}
 
-		localPath := filename
-		if err := client.DownloadFile(ctx, bucket, key, localPath); err != nil {
-			return fmt.Errorf("download failed: %w", err)
+		localFilename := parsedPath.Filename
+		localPath := localFilename
+		if output != "" {
+			info, err := os.Stat(output)
+			if err != nil {
+				return fmt.Errorf("output path does not exist: %s", output)
+			}
+			if info.IsDir() {
+				localPath = filepath.Join(output, localFilename)
+			} else {
+				localPath = output
+			}
+		}
+
+		switch parsedPath.Scheme {
+		case "s3":
+			if s3Client == nil {
+				cfg := s3client.Config{
+					AccessKey:   section.Key("aws_access_key_id").String(),
+					SecretKey:   section.Key("aws_secret_access_key").String(),
+					AccessToken: section.Key("aws_session_token").String(),
+					Region:      section.Key("aws_region").String(),
+					EndpointURL: section.Key("aws_endpoint_url").String(),
+				}
+				client, err := s3client.NewClient(ctx, cfg)
+				if err != nil {
+					return fmt.Errorf("failed to create S3 client: %w", err)
+				}
+				s3Client = client
+			}
+			if err := utils.DownloadS3FileOrDir(s3Client, ctx, parsedPath, localPath); err != nil {
+				log.Println("Error downloading from S3:", err)
+			}
+
+		case "http", "https":
+			if err := utils.DownloadHTTPFile(parsedPath.Path, localPath); err != nil {
+				log.Println("Error downloading from HTTP/s:", err)
+			}
+
+		case "other", "":
+			fmt.Printf("Skipping other.....: %s\n", parsedPath.Path)
+
+		default:
+			return fmt.Errorf("unsupported scheme: %s", parsedPath.Scheme)
 		}
 	}
 
-	log.Println("File downloaded successfully.")
+	log.Println("All files downloaded successfully.")
 	return nil
 }
