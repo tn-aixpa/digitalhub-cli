@@ -13,10 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	filePathFlag string
-	resetIdFlag  bool
-)
+var createFlag = flags.SpecificCommandFlag{}
+
 var createCmd = &cobra.Command{
 	Use:   "create <resource>",
 	Short: "Creates a new resource from a YAML file (or a name for projects)",
@@ -26,8 +24,8 @@ var createCmd = &cobra.Command{
 			flags.CommonFlag.EnvFlag,
 			flags.CommonFlag.ProjectFlag,
 			flags.CommonFlag.NameFlag,
-			filePathFlag,
-			resetIdFlag,
+			createFlag.FilePathFlag,
+			createFlag.ResetIdFlag,
 			args[0])
 		if err != nil {
 			log.Fatalf("Create failed: %v", err)
@@ -39,8 +37,8 @@ func init() {
 	flags.AddCommonFlags(createCmd, "env", "project", "name")
 
 	// Add file flags
-	createCmd.Flags().BoolVarP(&resetIdFlag, "reset-id", "r", false, "if set, removes the id field from the file to ensure the server assigns a new one")
-	createCmd.Flags().StringVarP(&filePathFlag, "file", "f", "", "path to a YAML file containing the resource definition")
+	createCmd.Flags().BoolVarP(&createFlag.ResetIdFlag, "reset-id", "r", false, "if set, removes the id field from the file to ensure the server assigns a new one")
+	createCmd.Flags().StringVarP(&createFlag.FilePathFlag, "file", "f", "", "path to a YAML file containing the resource definition")
 
 	core.RegisterCommand(createCmd)
 }

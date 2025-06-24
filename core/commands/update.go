@@ -13,9 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	fileFlag string
-)
+var updateFlag = flags.SpecificCommandFlag{}
 
 var updateCmd = &cobra.Command{
 	Use:   "update <resource> <id>",
@@ -25,7 +23,7 @@ var updateCmd = &cobra.Command{
 		err := service.UpdateHandler(
 			flags.CommonFlag.EnvFlag,
 			flags.CommonFlag.ProjectFlag,
-			fileFlag,
+			updateFlag.FilePathFlag,
 			args[0],
 			args[1])
 
@@ -39,6 +37,6 @@ func init() {
 	flags.AddCommonFlags(updateCmd, "env", "project")
 
 	// Add file flags
-	updateCmd.Flags().StringVarP(&fileFlag, "file", "f", "", "path to the YAML file containing the resource data to be updated")
+	updateCmd.Flags().StringVarP(&updateFlag.FilePathFlag, "file", "f", "", "path to the YAML file containing the resource data to be updated")
 	core.RegisterCommand(updateCmd)
 }

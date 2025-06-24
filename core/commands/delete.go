@@ -14,10 +14,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	confirmFlag bool
-	cascadeFlag bool
-)
+var deleteFlag = flags.SpecificCommandFlag{}
+
 var deleteCmd = &cobra.Command{
 	Use:   "delete <resource> [id]",
 	Short: "Delete a resource by ID or name",
@@ -37,8 +35,8 @@ var deleteCmd = &cobra.Command{
 			flags.CommonFlag.EnvFlag,
 			flags.CommonFlag.ProjectFlag,
 			flags.CommonFlag.NameFlag,
-			confirmFlag,
-			cascadeFlag,
+			deleteFlag.ConfirmFlag,
+			deleteFlag.CascadeFlag,
 			args[0],
 			id)
 
@@ -52,8 +50,8 @@ func init() {
 	flags.AddCommonFlags(deleteCmd, "env", "project", "name")
 
 	// Add file flags
-	deleteCmd.Flags().BoolVarP(&confirmFlag, "confirm", "y", false, "skips the deletion confirmation prompt")
-	deleteCmd.Flags().BoolVarP(&cascadeFlag, "cascade", "c", false, "if set, also deletes related resources (for projects)")
+	deleteCmd.Flags().BoolVarP(&deleteFlag.ConfirmFlag, "confirm", "y", false, "skips the deletion confirmation prompt")
+	deleteCmd.Flags().BoolVarP(&deleteFlag.CascadeFlag, "cascade", "c", false, "if set, also deletes related resources (for projects)")
 
 	core.RegisterCommand(deleteCmd)
 }
