@@ -1,6 +1,6 @@
 # CLI
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/scc-digitalhub/digitalhub-cli/release.yaml?event=release) [![license](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/scc-digitalhub/digitalhub-cli/LICENSE) ![GitHub Release](https://img.shields.io/github/v/release/scc-digitalhub/digitalhub-cli)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tn-aixpa/digitalhub-cli/release.yaml?event=release) [![license](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/tn-aixpa/digitalhub-cli/LICENSE) ![GitHub Release](https://img.shields.io/github/v/release/tn-aixpa/digitalhub-cli)
 ![Status](https://img.shields.io/badge/status-stable-gold)
 
 
@@ -12,7 +12,7 @@ For a full overview of available commands, please check [the documentation](http
 
 ## Quick start
 
-Download and unpack the corresponding archive from the [GitHub release page](https://github.com/scc-digitalhub/digitalhub-cli/releases). Run the ``dhcli`` executable. 
+Download and unpack the corresponding archive from the [GitHub release page](https://github.com/tn-aixpa/digitalhub-cli/releases). Run the ``dhcli`` executable. 
 
 On Mac, you can use the *Homebrew Tap* distribution:
 
