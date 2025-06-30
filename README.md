@@ -1,5 +1,9 @@
 # CLI
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/scc-digitalhub/digitalhub-cli/release.yaml?event=release) [![license](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/scc-digitalhub/digitalhub-cli/LICENSE) ![GitHub Release](https://img.shields.io/github/v/release/scc-digitalhub/digitalhub-cli)
+![Status](https://img.shields.io/badge/status-stable-gold)
+
+
 The Command-Line Interface (CLI) is a simple tool that offers a number of functionalities to set the platform up.
 
 The executable can be downloaded in the *Releases* page.
